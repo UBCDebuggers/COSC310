@@ -1,4 +1,6 @@
 # COSC310
 Names: Gabriel Unigwe, Ahab Siddiqui, Hakim Rashid, Daniel Ogundare
 
-Daniel's Branch
+This line was added by Hakim
+This line was added by Gabriel Unigwe
+This line was added by Daniel O

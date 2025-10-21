@@ -8,5 +8,3 @@ def health():
     return {"status": "ok"}
 
 app.include_router(items_router)
-
-#yello G

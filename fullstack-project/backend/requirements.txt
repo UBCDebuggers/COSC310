@@ -1,0 +1,9 @@
+# /backend/requirements.txt
+
+# Core Frameworks
+fastapi
+uvicorn[standard]
+
+# Data Processing (Add if needed)
+pandas
+python-multipart

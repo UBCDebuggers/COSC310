@@ -8,8 +8,8 @@ def load_all() -> List[Dict[str, Any]]:
     if not DATA_PATH.exists():
         return []
     
-    with DATA_PATH.open("r", encoding="utf-8", newline="") as f:
-        reader = csv.DictReader(f)
+    with DATA_PATH.open("r", encoding="latin-1", newline="") as f:
+        reader = csv.DictReader(f, delimiter= ";")
         return [row for row in reader]
 
 def save_all(books: List[Dict[str, Any]]) -> None:
@@ -21,8 +21,8 @@ def save_all(books: List[Dict[str, Any]]) -> None:
     fieldnames = list(books[0].keys())  # use keys from the first item as column names
     tmp = DATA_PATH.with_suffix(".tmp")
 
-    with tmp.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+    with tmp.open("w", encoding="latin-1", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter= ";")
         writer.writeheader()
         writer.writerows(books)
     

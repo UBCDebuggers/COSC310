@@ -1,9 +1,9 @@
 from fastapi import APIRouter, status
 from typing import List
-from schemas.book import Book, BookCreate, BookUpdate
-from services.books_service import get_book_by_isbn, list_books, create_book, delete_book, update_book
+from app.schemas.book import Book, BookCreate, BookUpdate
+from app.services.books_service import get_book_by_isbn, list_books, create_book, delete_book, update_book
 
-router = APIRouter(prefix="/items", tags=["items"])
+router = APIRouter(prefix="/books", tags=["books"])
 
 @router.get("", response_model=List[Book])
 def get_Books():
@@ -13,8 +13,6 @@ def get_Books():
 @router.post("", response_model=Book, status_code=201)
 def post_book(payload: BookCreate):
     return create_book(payload)
-
-from services.items_service import list_items, create_item, get_item_by_id
 
 @router.get("/{isbn}", response_model=Book)
 def get_book(isbn: str):

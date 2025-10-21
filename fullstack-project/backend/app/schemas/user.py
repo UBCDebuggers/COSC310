@@ -1,21 +1,15 @@
+from typing import Optional
 from pydantic import BaseModel
 
 class User(BaseModel):
-    id : int
+    id : str
     location : str
-    age : int
+    age : str
     
 class UserCreate(BaseModel):
     location : str
-    age : int
+    age : str
     
 class UserUpdate(BaseModel):
     location : str
-    age : int
-    
-    def csv_row_to_book(row: dict) -> User:
-        return User(
-            id = row["User-ID"],
-            location = row["Location"],
-            age = row["Age"]
-        )
+    age : str

@@ -12,9 +12,12 @@ def create_user(newUser: UserCreate) -> User:
     newId = str(uuid.uuid4())
     while any(user.get("id") == newId for user in users):
         newId = str(uuid.uuid4())
-    new_record = User(age = newUser.age,
-                      location  = newUser.location.strip(),
-                      id = newId
+    new_record = User(id = newId,
+                      email = newUser.email.strip(),
+                      hash_password = newUser.hash_password.strip(),
+                      is_admin = newUser.is_admin.strip(),
+                      department = newUser.department.strip(),
+                      age = newUser.age
                       )
     users.append(new_record.model_dump())
     save_all(users)
@@ -32,9 +35,13 @@ def update_user(user_id: str, userUpdate : UserUpdate) -> User:
     users = load_all()
     for id, user in enumerate(users):
         if user.get("isbn") == user_id:
-            updated = User(id = user_id,
-                           location = userUpdate.location.strip(),
-                           age = userUpdate.age)
+            updated = User(id = userUpdate,
+                           email = userUpdate.email.strip(),
+                           hash_password = userUpdate.hash_password.strip(),
+                           is_admin = userUpdate.is_admin.strip(),
+                           department = userUpdate.department.strip(),
+                           age = userUpdate.age
+                           )
             users[id] = updated.model_dump()
             save_all(users)
             return updated

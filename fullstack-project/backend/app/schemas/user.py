@@ -3,13 +3,22 @@ from pydantic import BaseModel
 
 class User(BaseModel):
     id : str
-    location : str
-    age : str
+    email : str
+    hash_password : str
+    is_admin : str
+    department : str
+    age : int
     
 class UserCreate(BaseModel):
-    location : str
-    age : str
+    email : str
+    hash_password : str
+    is_admin : str
+    department : str
+    age : int
     
 class UserUpdate(BaseModel):
-    location : str
-    age : str
+    email : str
+    hash_password : str
+    is_admin : str
+    department : str
+    age : int

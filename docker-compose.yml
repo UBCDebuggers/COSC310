@@ -1,6 +1,4 @@
 # /docker-compose.yml
-version: '3.8'
-
 services:
 
   # 1. Backend Service (FastAPI)
@@ -19,11 +17,11 @@ services:
   frontend:
     build:
       context: ./fullstack-project/frontend # Use the frontend directory as the build context
-      dockerfile: Dockerfile
     ports:
       - "3000:3000" # Map host port 3000 to container port 3000
+    command: npm run dev # Start the Next.js development server
     volumes:
-      - ./frontend:/app
+      - ./fullstack-project/frontend:/app
       - /app/node_modules # Important to avoid host node_modules issues
     depends_on:
       - backend # Start the frontend only after the backend is ready

@@ -1,9 +1,10 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 from typing import List
+from app.core.security import verify_access_token
 from app.schemas.user import User, UserCreate, UserUpdate
 from app.services.users_service import get_user_by_id, list_users, create_user, delete_user, update_user
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(verify_access_token)])
 
 @router.get("", response_model=List[User])
 def get_Users():

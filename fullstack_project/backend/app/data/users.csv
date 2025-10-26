@@ -1,1 +1,7 @@
-"id";"username";"email";"hash_password";"is_admin";"department";"age"
+userid;email;hash_password;is_admin;department;age;username;firstname;lastname
+f70517e2-90eb-4013-bd43-40c799d82a79;test;$2b$12$ln8D0lvPfEI2rQx5h9eoYeiwVQLDtRI3TW7brQotjlXVzT43wf9y6;no;test;0;hello world;john;doe
+3740b7c5-b91a-4e5b-9da9-faba80dbd727;test;$2b$12$aFgr3D2TPFdMqW0UzAtBMO12LMw6JQH/t1XjBBldvKoABH2EIdCH6;no;test;0;hello world;john;doe
+ef2c230b-eb97-4ec4-a79a-405add6e2bc3;test;$2b$12$izHBXda8TIZHqZciQjGVyuwKG3aWyOX0Oa9T4oAGNnC6ikpMTL7xS;no;test;0;test;john;doe
+eee2aa53-aaf2-4ef4-b54a-a6fcc9f6d933;test;$2b$12$IXmCSIu0C5jAyuMzP7i9H.XUo.NXLBixtJ0U4Wgi1pHmP9HUPonHi;no;test;0;hello world;john;doe
+9e2d54ff-2924-4037-990e-d771cb83b2b4;test;$2b$12$F0EceLIGJ2MU65npnje4w./kamam6zdnFz5tB8xnLizf0xH6OAclu;no;test;0;hello world;john;doe
+4e5cc342-4e3f-4293-b3a1-a9f598a41a02;test;$2b$12$rdog93BdihmzYwyz/OzPvubz5xLO07y./PlrIdjQygxszQuymmRbG;no;test;0;hello world;john;doe

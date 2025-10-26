@@ -1,9 +1,10 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 from typing import List
+from app.core.security import verify_access_token
 from app.schemas.rating import Rating, RatingCreate, RatingUpdate
 from app.services.ratings_service import get_rating_by_isbn, list_ratings, create_rating, delete_rating, update_rating
 
-router = APIRouter(prefix="/ratings", tags=["ratings"])
+router = APIRouter(prefix="/ratings", tags=["ratings"], dependencies=[Depends(verify_access_token)])
 
 @router.get("", response_model=List[Rating])
 def get_Ratings():

@@ -1,9 +1,10 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 from typing import List
 from app.schemas.book import Book, BookCreate, BookUpdate
 from app.services.books_service import get_book_by_isbn, list_books, create_book, delete_book, update_book
+from app.core.security import verify_access_token
 
-router = APIRouter(prefix="/books", tags=["books"])
+router = APIRouter(prefix="/books", tags=["books"], dependencies=[Depends(verify_access_token)])
 
 @router.get("", response_model=List[Book])
 def get_Books():

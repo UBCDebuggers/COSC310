@@ -1,8 +1,10 @@
 "use client"
-import { Box, Flex, Image, Stack, Text } from "@chakra-ui/react"
+import { AbsoluteCenter, Box, Flex, Image, Stack, HStack, VStack, Text } from "@chakra-ui/react"
 import React from 'react'
+import { VscBook } from "react-icons/vsc";
 
 import AuthForm from "./AuthForm"
+import "./style.css"
 
 const LoginForm = () => {
 
@@ -31,16 +33,28 @@ const LoginForm = () => {
   }, []);
 
   return (
-    <Flex w={'full'} h={'100vh'} border={"1px solid gray"} gap={3}>
-      {/* display an image on the left side of the login form unless the screen is small */}
-      <Image src="/login.png" alt="Login Illustration" objectFit="cover" flex={1} maxW={"50vw"} display={{md: 'block', base: 'none'}} />
-      <Stack position={'absolute'} bottom={'50%'} left={'5%'} color={'white'}>
-        <Text fontSize={'6xl'} fontWeight={'bold'}>Welcome Back!</Text>
-        <Text fontSize={'lg'} alignSelf={'center'} maxW={'30vw'}>{quote}</Text>
-      </Stack>
-
-      <Flex justifyContent={'center'} w={'full'}>
-        <AuthForm />
+    <Flex h="100vh" w="100vw" bgImage="url('/Libr.gif')" bgPosition="center" bgSize="100%" bgRepeat="no-repeat" justify="center" align="center" overflow="hidden">
+      <Flex w = {'50%'} maxW={"75%"} borderRadius={100} flex="1" direction="column" justify="center" align="center" bg="rgba(0, 0, 0, 0.5)" color="white">
+        <VStack>
+        <HStack>
+          <Stack spacing={6} textAlign={"center"}>
+              <Text fontSize={'5xl'} fontWeight={'bold'}>Welcome Back!</Text>
+            <HStack>
+              <VscBook size={60}/> 
+              <Text marginTop="10px">by The Debuggers</Text>
+            </HStack>
+            <Text fontSize={'lg'} alignSelf={'center'} maxW={'400px'}>{quote}</Text> 
+            <Text fontSize={'md'} alignSelf={'center'} maxW={'400px'}>~Description~</Text>
+          </Stack>
+          <Stack spacing={6} textAlign={"center"}>
+            {/* <Text fontSize={'lg'} alignSelf={'center'} maxW={'400px'}>{quote}</Text> */}
+            <Box mt={8} w="100%" maxW="600px">
+              <AuthForm />
+            </Box>
+          </Stack>
+      
+         </HStack>
+         </VStack>
       </Flex>
     </Flex>
   )

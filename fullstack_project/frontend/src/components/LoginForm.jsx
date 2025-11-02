@@ -3,7 +3,7 @@ import { Flex, HStack, VStack, Text, Input, Button, Container } from "@chakra-ui
 import React from 'react'
 import { VscBook } from "react-icons/vsc";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import AuthForm from "./AuthLoginForm"
+import AuthForm from "./AuthForm"
 import "./style.css"
 
 const LoginForm = () => {

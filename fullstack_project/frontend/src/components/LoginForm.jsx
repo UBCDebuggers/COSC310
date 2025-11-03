@@ -1,8 +1,7 @@
 "use client"
-import { Flex, HStack, VStack, Text, Input, Button, Container } from "@chakra-ui/react"
+import { Flex, HStack, VStack, Text } from "@chakra-ui/react"
 import React from 'react'
 import { VscBook } from "react-icons/vsc";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
 import AuthForm from "./AuthForm"
 import "./style.css"
 

@@ -1,12 +1,14 @@
 "use client"
-import { Box, Flex, Image, Stack, Text } from "@chakra-ui/react"
+import { Flex, HStack, VStack, Text, Input, Button, Container } from "@chakra-ui/react"
 import React from 'react'
-
+import { VscBook } from "react-icons/vsc";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import AuthForm from "./AuthForm"
+import "./style.css"
 
 const LoginForm = () => {
 
-  const [quote, setQuote] = React.useState("");
+  const [quote, setQuote] = React.useState({ quote: "", author: ""});
 
   const LoginFacts = [
     "\"A reader lives a thousand lives before he dies . . . The man who never reads lives only one.\"",
@@ -24,23 +26,35 @@ const LoginForm = () => {
     "- Haruki Murakami"
   ]
 
-  
   React.useEffect(() => {
     const randomIndex = Math.floor(Math.random() * LoginFacts.length);
-    setQuote(LoginFacts[randomIndex]);
+    setQuote({ 
+      quote: LoginFacts[randomIndex], author: authors[randomIndex] 
+    });
   }, []);
 
   return (
-    <Flex w={'full'} h={'100vh'} border={"1px solid gray"} gap={3}>
-      {/* display an image on the left side of the login form unless the screen is small */}
-      <Image src="/login.png" alt="Login Illustration" objectFit="cover" flex={1} maxW={"50vw"} display={{md: 'block', base: 'none'}} />
-      <Stack position={'absolute'} bottom={'50%'} left={'5%'} color={'white'}>
-        <Text fontSize={'6xl'} fontWeight={'bold'}>Welcome Back!</Text>
-        <Text fontSize={'lg'} alignSelf={'center'} maxW={'30vw'}>{quote}</Text>
-      </Stack>
+    <Flex h="100vh" w="100vw" bgImage={'url(/Libr.gif)'} bgPosition="center" bgSize="cover" bgRepeat="no-repeat" justify="center" align="center" overflow="hidden">
+      <Flex w = {["95%", "85%", "75%", "60%"]} maxW="1000px" maxH="90vh" backdropFilter="blur(5px)" borderRadius={"24px"} direction={["column", "column", "row"]} justify="center" align="center" bg="rgba(0, 0, 0, 0.55)" p={[6, 8, 10]} gap={[6, 8, 10]} boxShadow="0 4px 20px rgba(0,0,0,0.4)">
+          <Flex direction={["column", "column", "row"]} justify={"center"} align="center" overflowY="auto" overflowX="hidden" w="100%" h="100%" gap={[6, 8, 10]}>
+            <VStack spacing={4} textAlign={"center"} flex="1" align="center" justify="center" maxW="400px" p={[2, 4]} color="white">
+              <Text fontSize={["3xl", "4xl", "5x1"]} mt={["0px", "300px", "0px"]} fontWeight={'bold'}>Welcome Back!</Text>
+              
+              <HStack spacing={2} mb={2}>
+                <VscBook size={30}/> 
+                <Text fontSize="sm" mt="12.5px">by The Debuggers</Text>
+              </HStack>
 
-      <Flex justifyContent={'center'} w={'full'}>
-        <AuthForm />
+              <Text fontSize={["mg", "lg", "xl"]} fontStyle="italic" px={2} maxW={'380px'} lineHeight="tall">{quote.quote}</Text> 
+              <Text fontSize={'sm'} opacity={0.7} mb={6}>{quote.author}</Text>
+              <Text fontSize={'sm'} opacity={0.8} mb={2}>Full of endless books to your disposal so you can search, filter, and borrow at your disposal in your own personal account!</Text>
+            </VStack>
+
+            {/* <Text fontSize={'lg'} alignSelf={'center'} maxW={'400px'}>{quote}</Text> */}
+            <VStack spacing={6} w="100%" maxW="400px" flex="1" align={"center"} justify="center">
+              <AuthForm />
+            </VStack>
+          </Flex>
       </Flex>
     </Flex>
   )

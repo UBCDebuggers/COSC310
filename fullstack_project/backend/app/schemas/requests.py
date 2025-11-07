@@ -12,7 +12,7 @@ class Request(BaseModel):
     
     requestid : str
     userid : str
-    timestamp : SkipValidation[datetime]
+    timestamp : SkipValidation[datetime.datetime]
     request_type : str
     details : str
     error_code : Optional[int] = None

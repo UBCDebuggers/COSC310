@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class Book(BaseModel):
     isbn : str
@@ -11,9 +11,9 @@ class Book(BaseModel):
     img_url_l : str
     
 class BookCreate(BaseModel): 
-    isbn : str
-    title : str
-    author : str
+    isbn : str = Field(min_length=10)
+    title : str = Field(min_length=1)
+    author : str = Field(min_length=1)
     year_of_publication : int
     publisher : str
     img_url_s : str

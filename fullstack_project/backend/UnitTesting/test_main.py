@@ -2,7 +2,7 @@ from app.schemas.user import User, UserCreate
 from app.schemas.authentication import LoginRequest
 import pytest
 from app.services.users_service import create_user, authenticate_user
-from app.schemas.requests import Request, RequestCreate
+from app.services.books_service import search_by_char, search_by_string
 from fastapi import HTTPException
 
 def test_create_user_success():
@@ -38,6 +38,47 @@ def test_authenticate_user():
     assert result.username == "hello world"
     assert result.firstname == "john"
     assert result.lastname == "doe"
+    
+def test_search_by_char():
+    test = "hello"
+    compend = "hello"
+    hits = search_by_char(compend, test)
+    
+    assert hits == 5
+    
+    test = "an"
+    compend = "banana"
+    hits = search_by_char(compend, test)
+
+    assert hits == 5
+    
+def test_search_by_string():
+    test = "hello margeret"
+    compend = "hello margeret my name is hello, hello"
+    hits = search_by_string(compend, test)
+    
+    assert hits == 2
+    
+    test = "hello,margeret"
+    compend = "hello,margeret my name is hello, hello"
+    hits = search_by_string(compend, test)
+    
+    assert hits == 2
+    
+    test = "hello/margeret"
+    compend = "hello/margeret my name is hello, hello"
+    hits = search_by_string(compend, test)
+    
+    assert hits == 2
+    
+    test = "hello,margeret"
+    compend = "hello(margeret) my name is hello, hello"
+    hits = search_by_string(compend, test)
+    
+    assert hits == 2
+    
+    
+    
     
 if __name__ == "__main__":
     pytest.main([__file__])

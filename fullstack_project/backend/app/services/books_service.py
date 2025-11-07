@@ -1,10 +1,58 @@
+import re
+from collections import Counter
 from typing import List
 from fastapi import HTTPException
 from app.schemas.book import Book, BookCreate, BookUpdate
 from app.repositories.books_repo import load_all, save_all
 
-def list_books() -> List[Book]:
-    return [Book(**attributes) for attributes in load_all()]
+#Searches for a book by its title given a string. Returns the top 10 books that have the most matches by characters and words
+def search_books(tokens : str) -> List[Book]:
+    books = load_all()
+    results_list = []
+    for book in books:
+        title = book.get('title')
+        
+        title = title.lower()
+        tokens = tokens.lower()
+        
+        char_hits = search_by_char(title, tokens)
+        word_hits = search_by_string(title, tokens)
+        
+        results_list.append({"char_hits" : char_hits, 
+                             "word_hits": word_hits, 
+                             "isbn": book.get('isbn'), 
+                             "title" : title})
+        
+    results_list = sorted( results_list, key=lambda item: (
+        -item["word_hits"],  
+        -item["char_hits"],  
+        item["title"]        
+        ))
+    results_list = results_list[:10]
+    results_list = [get_book_by_isbn(book.get("isbn")) for book in results_list]
+    
+    return results_list
+        
+#Checks for how many letters from each string match each other
+def search_by_char(string : str, compare : str) -> int:
+    total_hits = 0
+    string_counts = Counter(string)
+    for char_compare in set(compare):
+        if char_compare in string_counts:
+            total_hits += string_counts[char_compare]
+            
+    return total_hits
+
+#Checks for how many words from each string match a word in the other string
+def search_by_string(string : str, compare :str) -> int:
+    total_hits = 0
+    words = re.split(r"[ .,/?;()]", compare)
+    clean_words = [word for word in words if word]
+    for word in clean_words:
+        if word in string:
+            total_hits += 1
+    return total_hits
+            
 
 def create_book(newBook: BookCreate) -> Book:
     books = load_all()

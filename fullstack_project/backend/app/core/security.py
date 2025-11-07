@@ -20,7 +20,7 @@ def create_access_token(data : dict):
 def verify_access_token(token : str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, _SECRET_KEY, algorithms= [_ALGORITHM])
-        userid : str = payload.get('userid')
+        userid : str = payload.get('sub')
         if userid:
             return userid
         raise HTTPException(

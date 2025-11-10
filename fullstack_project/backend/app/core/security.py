@@ -9,8 +9,8 @@ from typing import Annotated
 
 load_dotenv()
 
-_SECRET_KEY = os.getenv('SECRET_KEY')
-_ALGORITHM = os.getenv('ALGORITHM')
+_SECRET_KEY = os.getenv('SECRET_KEY', 'e84d75f99d5c47b299a0de7f6920e572')
+_ALGORITHM = os.getenv('ALGORITHM', "HS256")
 _ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES', 60))
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')

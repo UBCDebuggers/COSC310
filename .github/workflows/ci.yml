@@ -34,9 +34,14 @@ jobs:
   # BACKEND TEST
   backend:
     runs-on: ubuntu-latest
+    needs: frontend
     defaults:
       run:
         working-directory: ./fullstack_project/backend
+    env:
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      SECRET_KEY: e84d75f99d5c47b299a0de7f6920e572
+      ALGORITHM: HS256
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -54,8 +59,3 @@ jobs:
 
       - name: Run FastAPI integration tests
         run: pytest -v IntegrationTesting/test.py
-
-        env:
-          ACCESS_TOKEN_EXPIRE_MINUTES: 30
-          SECRET_KEY: e84d75f99d5c47b299a0de7f6920e572
-          ALGORITHM: HS256

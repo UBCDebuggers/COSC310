@@ -1,8 +1,7 @@
-from datetime import datetime, timedelta, timezone
-from app.core.security import _ALGORITHM, _SECRET_KEY, create_access_token, verify_access_token
-from app.schemas.user import User, UserCreate
 import unittest
 from unittest.mock import patch, ANY
+from datetime import datetime, timedelta, timezone
+from app.core.security import _ALGORITHM, _SECRET_KEY, create_access_token, verify_access_token
 from app.schemas.user import User, UserCreate
 from app.schemas.authentication import LoginRequest
 import pytest
@@ -10,7 +9,11 @@ from app.services import waitlist_service
 from app.services.users_service import create_user, authenticate_user
 from app.services.waitlist_service import create_waitlist, delete_specific_waitlist, get_waitlists_for_books, get_waitlists_for_user, delete_waitlists_for_user, delete_waitlists_for_book
 from app.schemas.requests import Request, RequestCreate
+from app.schemas.waitlist import WaitList, WaitListCreate
 from fastapi import HTTPException
+from datetime import datetime
+from fastapi import HTTPException, status
+from jose import jwt
 
 def test_create_user_success():
     # Arrange

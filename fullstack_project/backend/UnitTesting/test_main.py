@@ -8,6 +8,7 @@ from app.schemas.authentication import LoginRequest
 import pytest
 from app.services import waitlist_service
 from app.services.users_service import create_user, authenticate_user
+from app.services.books_service import filter, search_books
 from app.services.waitlist_service import create_waitlist, delete_specific_waitlist, get_waitlists_for_books, get_waitlists_for_user, delete_waitlists_for_user, delete_waitlists_for_book
 from app.schemas.requests import Request, RequestCreate
 from app.schemas.waitlist import WaitList, WaitListCreate

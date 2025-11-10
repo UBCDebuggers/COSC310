@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch, ANY
 from datetime import datetime, timedelta, timezone
 from app.core.security import _ALGORITHM, _SECRET_KEY, create_access_token, verify_access_token
+from app.schemas.filter import DateRange, Filter
 from app.schemas.user import User, UserCreate
 from app.schemas.authentication import LoginRequest
 import pytest
@@ -292,5 +293,79 @@ def test_verify_access_token_missing_userid():
     assert exc.value.status_code == status.HTTP_401_UNAUTHORIZED
     assert "validate" in exc.value.detail.lower()
     
+# test filter by author
+def test_filter_author():
+    query = Filter(author="Kathleen E. Woodiwiss",
+                    publisher=None,
+                    publish_date_range= None)
+    books = [{'isbn': '0380816792', 'title': 'A Rose in Winter', 'author': 'Kathleen E. Woodiwiss', 'year_of_publication': '2011', 'publisher': 'Harper Mass Market Paperbacks'}, 
+             {'isbn': '068160204X', 'title': 'The Royals', 'author': 'Kitty Kelley', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
+             {'isbn': '068107468X', 'title': 'Edgar Allen Poe Collected Poems', 'author': 'Edgar Allan Poe', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
+             {'isbn': '0743457226', 'title': 'Deep Waters', 'author': 'Jayne Ann Krentz', 'year_of_publication': '2010', 'publisher': 'Pocket'}
+    ]
+    assert all("Kathleen E. Woodiwiss" == book.get('author') for book in filter(query, books))
+
+# test filter by publisher
+def test_filter_publisher():
+    query = Filter(author=None,
+                    publisher="Harper Mass Market Paperbacks",
+                    publish_date_range= None)
+    books = [{'isbn': '0380816792', 'title': 'A Rose in Winter', 'author': 'Kathleen E. Woodiwiss', 'year_of_publication': '2011', 'publisher': 'Harper Mass Market Paperbacks'}, 
+             {'isbn': '068160204X', 'title': 'The Royals', 'author': 'Kitty Kelley', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
+             {'isbn': '068107468X', 'title': 'Edgar Allen Poe Collected Poems', 'author': 'Edgar Allan Poe', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
+             {'isbn': '0743457226', 'title': 'Deep Waters', 'author': 'Jayne Ann Krentz', 'year_of_publication': '2010', 'publisher': 'Pocket'}
+    ]
+    assert all("Harper Mass Market Paperbacks" == book.get('publisher') for book in filter(query, books))
+
+# test filter by bounded date ranges
+def test_filter_date():
+    query = Filter(author=None,
+                    publisher=None,
+                    publish_date_range= DateRange(min=2019, max=2022))
+    books = [{'isbn': '0380816792', 'title': 'A Rose in Winter', 'author': 'Kathleen E. Woodiwiss', 'year_of_publication': '2011', 'publisher': 'Harper Mass Market Paperbacks'}, 
+             {'isbn': '068160204X', 'title': 'The Royals', 'author': 'Kitty Kelley', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
+             {'isbn': '068107468X', 'title': 'Edgar Allen Poe Collected Poems', 'author': 'Edgar Allan Poe', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
+             {'isbn': '0743457226', 'title': 'Deep Waters', 'author': 'Jayne Ann Krentz', 'year_of_publication': '2010', 'publisher': 'Pocket'}
+    ]
+    filtered_results = filter(query, books)
+    assert all(int(book.get('year_of_publication')) <= 2022 for book in filtered_results)
+    assert all(int(book.get('year_of_publication')) >= 2019 for book in filtered_results)
+
+# test filter by unbounded date ranges
+def test_filter_date_single():
+    query = Filter(author=None,
+                    publisher=None,
+                    publish_date_range= DateRange(min=None, max=2019))
+    books = [{'isbn': '0380816792', 'title': 'A Rose in Winter', 'author': 'Kathleen E. Woodiwiss', 'year_of_publication': '2011', 'publisher': 'Harper Mass Market Paperbacks'}, 
+             {'isbn': '068160204X', 'title': 'The Royals', 'author': 'Kitty Kelley', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
+             {'isbn': '068107468X', 'title': 'Edgar Allen Poe Collected Poems', 'author': 'Edgar Allan Poe', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
+             {'isbn': '0743457226', 'title': 'Deep Waters', 'author': 'Jayne Ann Krentz', 'year_of_publication': '2010', 'publisher': 'Pocket'}
+    ]
+    filtered_results = filter(query, books)
+    assert all(int(book.get('year_of_publication')) <= 2019 for book in filtered_results)
+    
+    query = Filter(author=None,
+                    publisher=None,
+                    publish_date_range= DateRange(min=2012, max= None))
+    books = [{'isbn': '0380816792', 'title': 'A Rose in Winter', 'author': 'Kathleen E. Woodiwiss', 'year_of_publication': '2011', 'publisher': 'Harper Mass Market Paperbacks'}, 
+             {'isbn': '068160204X', 'title': 'The Royals', 'author': 'Kitty Kelley', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
+             {'isbn': '068107468X', 'title': 'Edgar Allen Poe Collected Poems', 'author': 'Edgar Allan Poe', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
+             {'isbn': '0743457226', 'title': 'Deep Waters', 'author': 'Jayne Ann Krentz', 'year_of_publication': '2010', 'publisher': 'Pocket'}
+    ]
+    filtered_results = filter(query, books)
+    assert all(int(book.get('year_of_publication')) >= 2012 for book in filtered_results)
+    
+ # test none filter
+def test_none_filter():
+    query = None
+    books = [{'isbn': '0380816792', 'title': 'A Rose in Winter', 'author': 'Kathleen E. Woodiwiss', 'year_of_publication': '2011', 'publisher': 'Harper Mass Market Paperbacks'}, 
+             {'isbn': '068160204X', 'title': 'The Royals', 'author': 'Kitty Kelley', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
+             {'isbn': '068107468X', 'title': 'Edgar Allen Poe Collected Poems', 'author': 'Edgar Allan Poe', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
+             {'isbn': '0743457226', 'title': 'Deep Waters', 'author': 'Jayne Ann Krentz', 'year_of_publication': '2010', 'publisher': 'Pocket'}
+    ]
+    filtered_results = filter(query, books)
+    
+    assert len(books) == len(filtered_results)
+    
 if __name__ == "__main__":
-    pytest.main([__file__])
+    pytest.main([__file__]) 

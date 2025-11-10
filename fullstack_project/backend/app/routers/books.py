@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 from app.schemas.book import Book, BookCreate, BookUpdate
-from app.services.books_service import get_book_by_isbn, list_books, create_book, delete_book, update_book
+from app.services.books_service import get_book_by_isbn, search_books, create_book, delete_book, update_book
 from app.core.security import verify_access_token
 
 router = APIRouter(prefix="/books", tags=["books"], dependencies=[Depends(verify_access_token)])
 
-@router.get("", response_model=List[Book])
-def get_Books():
-    return list_books()
+@router.get("/search/{title}", response_model=List[Book])
+async def search_book(title : str):
+    return search_books(title)
 
 #simple post the payload (is the body of the request)
 @router.post("", response_model=Book, status_code=status.HTTP_201_CREATED)

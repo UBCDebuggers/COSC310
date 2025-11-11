@@ -6,12 +6,12 @@ from app.repositories.ratings_repo import load_all, save_all
 def list_ratings() -> List[Rating]:
     return [Rating(**attributes) for attributes in load_all()]
 
-def create_rating(newRating: RatingCreate) -> Rating:
+def create_rating(newRating: RatingCreate, userid : str) -> Rating:
     ratings = load_all()
-    if any(rating.get("id") == newRating.id & rating.get('isbn') == newRating.isbn for rating in ratings):
+    if any(rating.get("id") == userid & rating.get('isbn') == newRating.isbn for rating in ratings):
         raise HTTPException(status_code=409, detail="Rating collision; retry.")
     
-    new_record = Rating(id = newRating.id.strip(),
+    new_record = Rating(id = userid.strip(),
                       isbn = newRating.isbn.strip(),
                       rating = newRating.rating.strip(),
                       )

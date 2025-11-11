@@ -1,0 +1,61 @@
+name: Fullstack CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # FRONTEND BUILD + TEST
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./fullstack_project/frontend
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test --if-present
+
+      - name: Build
+        run: npm run build --if-present
+
+  # BACKEND TEST
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./fullstack_project/backend
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run FastAPI unit tests
+        run: pytest -v UnitTesting/test_main.py
+
+      - name: Run FastAPI integration tests
+        run: pytest -v IntegrationTesting/test.py
+
+        env:
+          ACCESS_TOKEN_EXPIRE_MINUTES: 30
+          SECRET_KEY: e84d75f99d5c47b299a0de7f6920e572
+          ALGORITHM: HS256

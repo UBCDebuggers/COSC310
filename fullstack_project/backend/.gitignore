@@ -1,19 +1,10 @@
-# --------------------
-# Environment/Config
-# --------------------
-/.env                      # Ignore .env file in the backend root
-/VirtualEnvironment/       # Your specified virtual environment
-/venv/                     # Common virtual environment name
-/.vscode/                  # VS Code specific settings
+/.env                      
+/VirtualEnvironment/       
+/venv/                     
+/.vscode/                  
 
-# --------------------
-# Python Compiled/Cache
-# --------------------
-*.pyc                      # Compiled Python files (including those in app/__pycache__/)
-__pycache__/               # Cache directories
+__pycache__/         
+*.pyc    
 
-# --------------------
-# Testing Artifacts
-# --------------------
 .pytest_cache/
 htmlcov/

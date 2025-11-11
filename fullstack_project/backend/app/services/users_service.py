@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from app.schemas.authentication import LoginRequest
 from app.schemas.user import User, UserCreate, UserUpdate
 from app.repositories.users_repo import load_all, save_all
-from app.core.security import bcrypt_context
+from app.core.config import bcrypt_context
 
 def list_users() -> List[User]:
     return [User(**attributes) for attributes in load_all()]

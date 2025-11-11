@@ -22,17 +22,21 @@ async def user_login(form_data: OAuth2PasswordRequestForm = Depends()):
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     
-    access_token = create_access_token(data={"sub": user.userid, "admin" : user.is_admin})
+    access_token = create_access_token(data={"sub": user.userid})
     return TokenResponse(access_token=access_token)
 
 @router.post('/signup', status_code=status.HTTP_201_CREATED)
-async def user_signup(payload: UserCreate):
-    user = create_user(UserCreate(**payload))
-    if not user:
-        raise HTTPException(status_code=status.WS_1011_INTERNAL_ERROR, detail="Something went wrong while creating your profile please try again")
-    
-    access_token = create_access_token(data={"sub": user.userid, "admin" : user.is_admin})
-    return TokenResponse(access_token=access_token)
+async def user_signup(payload: LoginRequest):
+    create_user(UserCreate(
+        email = "test",
+        password = payload.password.strip(),
+        username = payload.username_email.strip(),
+        is_admin = "no",
+        department = "test",
+        age = 0,
+        firstname = 'john',
+        lastname = 'doe'
+    ))
         
     
 

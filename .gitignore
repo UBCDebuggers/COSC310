@@ -1,1 +1,22 @@
 ../COSC310/
+
+# --------------------
+# 1. DEPENDENCIES (Global)
+# --------------------
+# Node dependencies, typically installed in the frontend folder
+/fullstack_project/frontend/node_modules
+
+# --------------------
+# 2. BUILD ARTIFACTS (Global)
+# --------------------
+# Next.js build output, which MUST NOT be committed
+/fullstack_project/frontend/.next/
+/fullstack_project/frontend/out/
+
+# --------------------
+# 3. ENVIRONMENT/CONFIG (Global)
+# --------------------
+# Docker Compose environment variables
+.env
+.env.local
+.env.*.local

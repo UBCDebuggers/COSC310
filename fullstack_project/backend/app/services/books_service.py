@@ -7,7 +7,7 @@ from app.schemas.filter import Filter
 from app.repositories.books_repo import load_all, save_all
 
 BOOKS = load_all()
-    
+
 #Searches for a book by its title given a string. Returns the top 10 books that have the most matches by characters and words
 def search_books(tokens : str, filter_data : Filter) -> List[Book]:
     results_list = []
@@ -108,4 +108,17 @@ def delete_book(book_isbn: str) -> None:
     save_all(new_books)
         
             
-    
+# Checks if a student has opened a book before (using history.csv)
+def User_opening_book(user_id: str, book_isbn: str) -> bool:
+    try:
+        with open('app/data/history.csv', 'r', encoding='utf-8') as file:
+            lines = file.readlines()
+            for line in lines[1:]:  # Skip header
+                record = line.strip().split('; ')
+                if len(record) >= 2:
+                    record_user_id, record_isbn = record[0], record[1]
+                    if record_user_id == user_id and record_isbn == book_isbn:
+                        return True
+    except FileNotFoundError:
+        pass  # If the file doesn't exist, the user hasn't opened any books yet
+    return False

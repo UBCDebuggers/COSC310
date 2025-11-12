@@ -1,3 +1,6 @@
+import httpx
+from PIL import Image
+import io
 import re
 from collections import Counter
 from typing import List
@@ -106,6 +109,20 @@ def delete_book(book_isbn: str) -> None:
     if len(new_books) == len(BOOKS):
         HTTPException(status_code=404, detail=f"Book '{book_isbn}' not found")
     save_all(new_books)
-        
-            
+
+# Downloads and returns an image from a given URL
+def FindImage(x):
+	try:
+		response = httpx.get(x)
+		response.raise_for_status()
+		img = Image.open(io.BytesIO(response.content))
+		return img
+	except Exception as e:
+		print(f"Error opening the image: {e}")
+		return None 
     
+    # If you want to write it out (aka return the image file):
+        # Make your variable (e.g. my_image = FindImage(url)
+        # Create an if statement of whether or not my_image has a file there or not (None)
+            # If so, then my_image.show())
+            # Else, print an error

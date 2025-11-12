@@ -105,9 +105,8 @@ def delete_book(book_isbn: str) -> None:
     new_books = [book for book in BOOKS if book.get("isbn") != book_isbn]
     if len(new_books) == len(BOOKS):
         HTTPException(status_code=404, detail=f"Book '{book_isbn}' not found")
-    save_all(new_books)
-        
-            
+    save_all(new_books)        
+
 # Checks if a student has opened a book before (using history.csv)
 def User_opening_book(user_id: str, book_isbn: str) -> bool:
     try:

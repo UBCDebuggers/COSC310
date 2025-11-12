@@ -1,4 +1,4 @@
-import requests
+import httpx
 from PIL import Image
 import io
 import re
@@ -113,16 +113,11 @@ def delete_book(book_isbn: str) -> None:
 # Downloads and returns an image from a given URL
 def FindImage(x):
 	try:
-		response = requests.get(x)
+		response = httpx.get(x)
 		response.raise_for_status()
-		image_data = io.BytesIO(response.content)
-		img = Image.open(image_data)
-
+		img = Image.open(io.BytesIO(response.content))
 		return img
-	except requests.exceptions.RequestException as e:
-		print(f"Error downloading the image: {e}")
-		return None
-	except IOError as e:
+	except Exception as e:
 		print(f"Error opening the image: {e}")
 		return None 
     
@@ -130,4 +125,4 @@ def FindImage(x):
         # Make your variable (e.g. my_image = FindImage(url)
         # Create an if statement of whether or not my_image has a file there or not (None)
             # If so, then my_image.show())
-            # Else, print an error message
+            # Else, print an error

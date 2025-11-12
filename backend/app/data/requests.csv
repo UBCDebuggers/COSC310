@@ -1,0 +1,5 @@
+requestid;userid;timestamp;request_type;details;error_code
+1a5d98be-9547-49a6-8b37-44bf76cad2ef;123test;2025-10-24 22:54:25.924359;TEST;this is a test;300
+ca6ddb3e-f7fa-415c-9935-d971dbca2c0d;123test;2025-10-24 22:58:02.575319;TEST;this is a test;300
+5288842b-4180-41f1-8edd-b00bcc56bc0f;123test;2025-10-24 22:58:02.594339;TEST;test with spaces;300
+0c0fb0a0-c8e5-401d-87d5-5980466b59b0;123test;2025-10-24 22:58:02.620672;TEST;test without error;

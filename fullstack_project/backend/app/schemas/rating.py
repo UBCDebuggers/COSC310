@@ -1,13 +1,13 @@
 from pydantic import BaseModel, Field
 
 class Rating(BaseModel):
-    id : str
+    ratingid : str
     isbn : str
-    rating : int = Field(min_length=1, max_length=5)
+    rating : int 
     
 class RatingCreate(BaseModel):
     isbn : str
-    rating : str
+    rating : int
     
 class RatingUpdate(BaseModel):
-    rating : str
+    rating : int

@@ -5,6 +5,7 @@ from app.routers.books import router as books_router
 from app.routers.ratings import router as ratings_router
 from app.routers.users import router as users_router
 from app.routers.watchlist import router as watchlist_router 
+from app.routers.analytics import router as analytics_router
 
 app = FastAPI()
 
@@ -25,3 +26,4 @@ app.include_router(books_router)
 app.include_router(ratings_router)
 app.include_router(users_router)
 app.include_router(watchlist_router)
+app.include_router(analytics_router)

@@ -43,6 +43,7 @@ async def remove_book(isbn : str, token_data : dict = Depends(verify_access_toke
 #Allows for a csv file upload for admin users to add many books at once
 @router.post("/upload", status_code=status.HTTP_201_CREATED)
 async def upload_books_csv(file: UploadFile = File(...), token_data: dict = Depends(verify_access_token)):
+    msg = ""
     if not token_data["is_admin"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     
@@ -64,10 +65,10 @@ async def upload_books_csv(file: UploadFile = File(...), token_data: dict = Depe
             new_books.append(book)
             
         except Exception as e:
-            print(f"Error processing row {row}: {e}")
+            msg += f"Error processing row {row}: {e}\n"
             continue
 
     if not new_books:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="No valid books could be created from the CSV.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="No valid books could be created from the CSV.")
 
-    return {"message": f"Successfully created {len(new_books)} books."}
+    return {"message": f"Successfully created {len(new_books)} books.", "errors" : msg}

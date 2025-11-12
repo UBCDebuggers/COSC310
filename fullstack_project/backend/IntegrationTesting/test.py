@@ -1,6 +1,6 @@
 import csv
 import io
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 import pytest
 from app.main import app
@@ -296,3 +296,26 @@ def test_upload_csv_empty_file(client: TestClient, mock_services):
     assert "No valid books could be created" in response.json()["detail"]
     assert mock_services["create_book"].call_count == 0
     cleanup_auth()
+    
+# Test for error messages
+def test_upload_books_csv_partial_errors(client : TestClient, mock_services):
+    setup_auth(True)
+    
+    mock_books = [
+    {"isbn": "9780000003333", "title": "Valid Book", "author": "V1", "year_of_publication": 2003,
+     "publisher": "V_Pub", "img_url_s": "v_s.jpg", "img_url_m": "v_m.jpg", "img_url_l": "v_l.jpg"}, 
+    {"isbn": "", "title": "Invalid Book", "author": "I1", "year_of_publication": 2004,
+     "publisher": "I_Pub", "img_url_s": "i_s.jpg", "img_url_m": "i_m.jpg", "img_url_l": "i_l.jpg"},
+]
+    csv_file = get_mock_csv(mock_books)
+
+    response = client.post("/books/upload", files={"file": ("books.csv", csv_file, "text/csv")})
+       
+    assert response.status_code == 201 
+    
+    data = response.json()
+    
+    assert mock_services["create_book"].call_count == 1
+    assert "Successfully created 1 books." in data["message"]
+    assert "Error processing row" in data["errors"]
+    assert "Error processing row {'isbn': '', 'title': 'Invalid Book', 'author': 'I1', 'year_of_publication': '2004', 'publisher': 'I_Pub', 'img_url_s': 'i_s.jpg', 'img_url_m': 'i_m.jpg', 'img_url_l': 'i_l.jpg'}: 1 validation error for BookCreate\nisbn\n  String should have at least 10 characters [type=string_too_short, input_value='', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_too_short\n" in data["errors"]

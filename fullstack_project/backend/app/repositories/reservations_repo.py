@@ -2,7 +2,7 @@ from pathlib import Path
 import csv, os
 from typing import List, Dict, Any
 
-DATA_PATH = Path(__file__).resolve().parents[1] / "data" / "users.csv"
+DATA_PATH = Path(__file__).resolve().parents[1] / "data" / "book_reservations.csv"
 
 def load_all() -> List[Dict[str, Any]]:
     if not DATA_PATH.exists():
@@ -12,18 +12,18 @@ def load_all() -> List[Dict[str, Any]]:
         reader = csv.DictReader(f, delimiter=';')
         return [row for row in reader]
 
-def save_all(users: List[Dict[str, Any]]) -> None:
-    if not users:
+def save_all(reservations: List[Dict[str, Any]]) -> None:
+    if not reservations:
         # If no items, remove the file or create an empty one with no data rows
         DATA_PATH.unlink(missing_ok=True)
         return
 
-    fieldnames = list(users[0].keys())  # use keys from the first item as column names
+    fieldnames = list(reservations[0].keys())  # use keys from the first item as column names
     tmp = DATA_PATH.with_suffix(".tmp")
 
     with tmp.open("w", encoding="latin-1", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter=";")
         writer.writeheader()
-        writer.writerows(users)
+        writer.writerows(reservations)
     
     os.replace(tmp, DATA_PATH)

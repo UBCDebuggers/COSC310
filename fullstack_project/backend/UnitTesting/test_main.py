@@ -9,13 +9,34 @@ import pytest
 from app.services import waitlist_service
 from app.services.users_service import create_user, authenticate_user
 from app.services.books_service import filter, search_books
-from app.services.waitlist_service import create_waitlist, delete_specific_waitlist, get_waitlists_for_books, get_waitlists_for_user, delete_waitlists_for_user, delete_waitlists_for_book
+from app.services.waitlist_service import (create_waitlist, 
+                                           delete_specific_waitlist,
+                                           get_waitlists_for_books, 
+                                           get_waitlists_for_user, 
+                                           delete_waitlists_for_user, 
+                                           delete_waitlists_for_book
+)
 from app.schemas.requests import Request, RequestCreate
 from app.schemas.waitlist import WaitList, WaitListCreate
 from fastapi import HTTPException
 from datetime import datetime
 from fastapi import HTTPException, status
 from jose import jwt
+from app.services import reservation_services
+from app.services.reservation_services import (
+    get_reservations_by_isbn,
+    get_reservations_by_userid,
+    get_latest_reservation_by_isbn,
+    get_latest_reservation_by_userid,
+    create_reservation
+)
+from app.schemas.reservation import (
+    BookReservation,
+    BookReservationCreate,
+    RETURNED,
+    NOT_RETURNED,
+    NOT_RETURNED_OVERDUE
+)
 
 def test_create_user_success():
     # Arrange
@@ -367,6 +388,141 @@ def test_none_filter():
     filtered_results = filter(query, books)
     
     assert len(books) == len(filtered_results)
+    
+class TestReservationService(unittest.TestCase):
+    #Creates mock reservations for get_reservations_by_isbn and by userid
+    def setUp(self):
+        now = datetime.now()
+        reservation_services.RESERVATIONS = [
+            {
+                "isbn": "111",
+                "userid": "u1",
+                "reservation_date": (now - timedelta(days=2)).isoformat(),
+                "expiry_date": (now + timedelta(days=1)).isoformat(),
+                "status": RETURNED
+            },
+            {
+                "isbn": "111",
+                "userid": "u2",
+                "reservation_date": (now - timedelta(days=1)).isoformat(),
+                "expiry_date": (now + timedelta(days=2)).isoformat(),
+                "status": RETURNED
+            },
+            {
+                "isbn": "222",
+                "userid": "u1",
+                "reservation_date": now.isoformat(),
+                "expiry_date": (now + timedelta(days=3)).isoformat(),
+                "status": RETURNED
+            }
+        ]
+    
+    def test_get_reservations_by_isbn_success(self):
+        results = get_reservations_by_isbn("111")
+        self.assertIsInstance(results, list)
+        self.assertEqual(len(results), 2)
+        self.assertTrue(all(isinstance(r, BookReservation) for r in results))
+
+    def test_get_reservations_by_isbn_not_found(self):
+        with self.assertRaises(HTTPException) as context:
+            get_reservations_by_isbn("999")
+        self.assertEqual(context.exception.status_code, 404)
+
+    def test_get_reservations_by_userid_success(self):
+        results = get_reservations_by_userid("u1")
+        self.assertEqual(len(results), 2)
+        self.assertTrue(all(r.userid == "u1" for r in results))
+
+    def test_get_reservations_by_userid_not_found(self):
+        with self.assertRaises(HTTPException) as context:
+            get_reservations_by_userid("nouser")
+        self.assertEqual(context.exception.status_code, 404)
+
+    def test_get_latest_reservation_by_isbn_success(self):
+        result = get_latest_reservation_by_isbn("111")
+        self.assertIsInstance(result, BookReservation)
+        self.assertEqual(result.isbn, "111")
+
+    def test_get_latest_reservation_by_isbn_not_found(self):
+        with self.assertRaises(HTTPException) as context:
+            get_latest_reservation_by_isbn("999")
+        self.assertEqual(context.exception.status_code, 404)
+
+    def test_get_latest_reservation_by_userid_success(self):
+        result = get_latest_reservation_by_userid("u1")
+        self.assertIsInstance(result, BookReservation)
+        self.assertEqual(result.userid, "u1")
+
+    def test_get_latest_reservation_by_userid_not_found(self):
+        with self.assertRaises(HTTPException) as context:
+            get_latest_reservation_by_userid("nouser")
+        self.assertEqual(context.exception.status_code, 404)
+
+    @patch("app.services.reservation_services.save_all")
+    def test_create_reservation_successful(self, mock_save_all):
+        mock_save_all.return_value = None
+        new_res = BookReservationCreate(
+            isbn="333",
+            userid="u3",
+            expiry_date=(datetime.now() + timedelta(days=3)).isoformat(),
+            status=RETURNED
+        )
+
+        result = create_reservation(new_res)
+        mock_save_all.assert_called_once()
+
+        self.assertEqual(result.isbn, "333")
+        self.assertEqual(result.userid, "u3")
+        self.assertIsInstance(result, BookReservation)
+        self.assertEqual(result.status, RETURNED)
+
+    @patch("app.services.reservation_services.save_all")
+    def test_create_reservation_book_already_on_loan(self, mock_save_all):
+        mock_save_all.return_value = None
+
+        with patch("app.services.reservation_services.get_latest_reservation_by_isbn") as mock_isbn:
+            mock_isbn.return_value = BookReservation(
+                reservation_id="123",
+                isbn="111", userid="u1", status=NOT_RETURNED,
+                reservation_date=datetime.now(), expiry_date=datetime.now()
+            )
+
+            new_res = BookReservationCreate(
+                isbn="111",
+                userid="u2",
+                expiry_date=(datetime.now() + timedelta(days=5)).isoformat(),
+                status=RETURNED
+            )
+
+            with self.assertRaises(HTTPException) as context:
+                create_reservation(new_res)
+            self.assertEqual(context.exception.status_code, 403)
+            mock_save_all.assert_not_called()
+
+    @patch("app.services.reservation_services.save_all")
+    def test_create_reservation_user_has_unreturned_book(self, mock_save_all):
+        mock_save_all.return_value = None
+
+        with patch("app.services.reservation_services.get_latest_reservation_by_isbn") as mock_isbn, \
+             patch("app.services.reservation_services.get_latest_reservation_by_userid") as mock_user:
+
+            mock_isbn.side_effect = HTTPException(status_code=404, detail="No book found")
+            mock_user.return_value = BookReservation(
+                reservation_id="124",
+                isbn="222", userid="u1", status=NOT_RETURNED_OVERDUE,
+                reservation_date=datetime.now(), expiry_date=datetime.now()
+            )
+
+            new_res = BookReservationCreate(
+                isbn="222",
+                userid="u1",
+                expiry_date=(datetime.now() + timedelta(days=5)).isoformat()
+            )
+
+            with self.assertRaises(HTTPException) as context:
+                create_reservation(new_res)
+            self.assertEqual(context.exception.status_code, 403)
+            mock_save_all.assert_not_called()
     
 if __name__ == "__main__":
     pytest.main([__file__]) 

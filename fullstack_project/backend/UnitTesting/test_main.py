@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, ANY
+from unittest.mock import MagicMock, patch, ANY
 from datetime import datetime, timedelta, timezone
 from app.core.security import _ALGORITHM, _SECRET_KEY, create_access_token, verify_access_token
 from app.schemas.filter import DateRange, Filter
@@ -9,7 +9,7 @@ import pytest
 from app.services import waitlist_service
 from app.services.users_service import create_user, authenticate_user
 from app.services.books_service import filter, search_books
-from app.services.waitlist_service import create_waitlist, delete_specific_waitlist, get_waitlists_for_books, get_waitlists_for_user, delete_waitlists_for_user, delete_waitlists_for_book
+from app.services.waitlist_service import create_waitlist, delete_specific_waitlist, get_specific_waitlist, get_waitlists_for_books, get_waitlists_for_user, delete_waitlists_for_user, delete_waitlists_for_book, update_waitlists
 from app.schemas.requests import Request, RequestCreate
 from app.schemas.waitlist import WaitList, WaitListCreate
 from fastapi import HTTPException
@@ -51,194 +51,218 @@ def test_authenticate_user():
     assert result.firstname == "john"
     assert result.lastname == "doe"
 
-class TestWaitlistService(unittest.TestCase):
+MOCK_WAITLIST_DATA = [
+    {'isbn': '978-0321765723', 'userid': 'userA', 'position': 1},
+    {'isbn': '978-0321765723', 'userid': 'userB', 'position': 2},
+    {'isbn': '978-0321765723', 'userid': 'userC', 'position': 3},
+    {'isbn': '978-0134768560', 'userid': 'userA', 'position': 1},
+]
 
-    def setUp(self):
-        # Clear global list before each test
-        waitlist_service.WAITLISTS = []
-    
-    @patch('app.services.waitlist_service.save_all')
-    def test_create_waitlist_successful_addition(self, mock_save_all):
-        input_data = WaitListCreate(isbn="123", userid="321")
+@patch('app.services.waitlist_service.save_all')
+@patch('app.services.waitlist_service.load_all')
+class TestWaitlistFunctions:
+
+    def test_create_waitlist_success_new_book(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
+        """Tests creating a waitlist when the book is new (no existing entries)."""
+        mock_load_all.return_value = []
+        new_waitlist_data = WaitListCreate(isbn="978-1234567890", userid="newUser")
         
-        expected_result = WaitList(
-            isbn=input_data.isbn, 
-            userid=input_data.userid, 
-            timestamp=datetime.now(),
-            position=0
-        )
-        
-        mock_save_all.return_value = None 
-        result = create_waitlist(newWaitList=input_data)
-        
+        result = create_waitlist(new_waitlist_data)
+
+        assert result.isbn == new_waitlist_data.isbn
+        assert result.userid == new_waitlist_data.userid
+        assert result.position == 0 
         mock_save_all.assert_called_once()
+        saved_data = mock_save_all.call_args[0][0]
+        assert len(saved_data) == 1
+        assert saved_data[0]['userid'] == 'newUser'
+        assert saved_data[0]['position'] == 0
+
+    def test_create_waitlist_success_existing_book(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
+        """Tests creating a waitlist when the book has existing entries."""
+        mock_load_all.return_value = MOCK_WAITLIST_DATA
+        new_waitlist_data = WaitListCreate(isbn="978-0321765723", userid="userD")
         
-        self.assertEqual(result.isbn, expected_result.isbn)
-        self.assertEqual(result.userid, expected_result.userid)
-        self.assertIsInstance(result.timestamp, datetime)
-        self.assertEqual(result.position, expected_result.position)
-        
-    def test_create_waitlist_unsuccessful_addition(self):
-        input_data = WaitListCreate(isbn="123", userid="321")
-        
-        create_waitlist(newWaitList=input_data)
-        with self.assertRaises(HTTPException) as context:
-           create_waitlist(newWaitList=input_data)
+        result = create_waitlist(new_waitlist_data)
 
-        self.assertEqual(context.exception.status_code, 406) 
-        
-    @patch('app.services.waitlist_service.save_all')
-    def test_get_waitlists_for_user_successful(self, mock_save_all):
-        mock_save_all.return_value = None
-
-        input1 = WaitListCreate(isbn="111", userid="U1")
-        input2 = WaitListCreate(isbn="222", userid="U1")
-        create_waitlist(newWaitList=input1)
-        create_waitlist(newWaitList=input2)
-
-        result = get_waitlists_for_user("U1")
-
-        self.assertIsInstance(result, list)
-        self.assertEqual(len(result), 2)
-        self.assertTrue(all(isinstance(item, WaitList) for item in result))
-        self.assertEqual(result[0].userid, "U1")
-
-    @patch('app.services.waitlist_service.save_all')
-    def test_get_waitlists_for_user_unsuccessful(self, mock_save_all):
-        mock_save_all.return_value = None
-
-        input_data = WaitListCreate(isbn="999", userid="AnotherUser")
-        create_waitlist(newWaitList=input_data)
-
-        with self.assertRaises(HTTPException) as context:
-            get_waitlists_for_user("NonExistingUser")
-
-        self.assertEqual(context.exception.status_code, 404)
-        self.assertIn("No waitlists for 'NonExistingUser' not found", context.exception.detail)
-
-    @patch('app.services.waitlist_service.save_all')
-    def test_get_waitlists_for_books_successful(self, mock_save_all):
-        mock_save_all.return_value = None
-
-        input1 = WaitListCreate(isbn="BOOK123", userid="User1")
-        input2 = WaitListCreate(isbn="BOOK123", userid="User2")
-        create_waitlist(newWaitList=input1)
-        create_waitlist(newWaitList=input2)
-
-        result = get_waitlists_for_books("BOOK123")
-
-        self.assertIsInstance(result, list)
-        self.assertEqual(len(result), 2)
-        self.assertTrue(all(item.isbn == "BOOK123" for item in result))
-
-    @patch('app.services.waitlist_service.save_all')
-    def test_get_waitlists_for_books_unsuccessful(self, mock_save_all):
-        mock_save_all.return_value = None
-
-        input_data = WaitListCreate(isbn="DIFFERENTBOOK", userid="User1")
-        create_waitlist(newWaitList=input_data)
-
-        with self.assertRaises(HTTPException) as context:
-            get_waitlists_for_books("UNKNOWNBOOK")
-
-        self.assertEqual(context.exception.status_code, 404)
-        self.assertIn("No waitlists for 'UNKNOWNBOOK' not found", context.exception.detail)
-
-    @patch('app.services.waitlist_service.save_all')
-    def test_delete_waitlists_for_user_successful(self, mock_save_all):
-        mock_save_all.return_value = None
-
-        create_waitlist(WaitListCreate(isbn="BOOK1", userid="USER1"))
-        create_waitlist(WaitListCreate(isbn="BOOK2", userid="USER1"))
-        create_waitlist(WaitListCreate(isbn="BOOK3", userid="OTHER"))
-        
-        mock_save_all.reset_mock()
-
-        delete_waitlists_for_user("USER1")
-
-        self.assertEqual(len(waitlist_service.WAITLISTS), 1)
-        self.assertTrue(all(w['userid'] != "USER1" for w in waitlist_service.WAITLISTS))
+        assert result.isbn == new_waitlist_data.isbn
+        assert result.userid == new_waitlist_data.userid
+        assert result.position == 4 
         mock_save_all.assert_called_once()
-
-    @patch('app.services.waitlist_service.save_all')
-    def test_delete_waitlists_for_user_not_found(self, mock_save_all):
-        mock_save_all.return_value = None
-        create_waitlist(WaitListCreate(isbn="BOOKX", userid="USERX"))
+        saved_data = mock_save_all.call_args[0][0]
+        assert len(saved_data) == 5
+        assert saved_data[-1]['userid'] == 'userD'
+        assert saved_data[-1]['position'] == 4
         
-        mock_save_all.reset_mock()
+    def test_create_waitlist_failure_already_exists(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
+        """Tests failing to create a waitlist because the user is already on it."""
+        mock_load_all.return_value = MOCK_WAITLIST_DATA
+        duplicate_data = WaitListCreate(isbn="978-0321765723", userid="userA")
 
-        with self.assertRaises(HTTPException) as ctx:
-            delete_waitlists_for_user("NOT_FOUND_USER")
-
-        self.assertEqual(ctx.exception.status_code, 404)
-        self.assertIn("not found", ctx.exception.detail.lower())
+        with pytest.raises(HTTPException) as excinfo:
+            create_waitlist(duplicate_data)
+        
+        assert excinfo.value.status_code == status.HTTP_406_NOT_ACCEPTABLE
+        assert "already exists" in excinfo.value.detail
         mock_save_all.assert_not_called()
 
-    @patch('app.services.waitlist_service.save_all')
-    def test_delete_waitlists_for_book_successful(self, mock_save_all):
-        mock_save_all.return_value = None
-
-        create_waitlist(WaitListCreate(isbn="TARGET", userid="U1"))
-        create_waitlist(WaitListCreate(isbn="TARGET", userid="U2"))
-        create_waitlist(WaitListCreate(isbn="OTHER", userid="U3"))
+    def test_get_waitlists_for_user_success(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
+        """Tests successfully retrieving all waitlists for a specific user."""
+        mock_load_all.return_value = MOCK_WAITLIST_DATA
         
-        mock_save_all.reset_mock()
+        result = get_waitlists_for_user("userA")
         
-        delete_waitlists_for_book("TARGET")
+        assert len(result) == 2
+        assert all(isinstance(wl, WaitList) for wl in result)
+        assert result[0].isbn == '978-0321765723'
+        assert result[1].isbn == '978-0134768560'
 
-        self.assertEqual(len(waitlist_service.WAITLISTS), 1)
-        self.assertTrue(all(w['isbn'] != "TARGET" for w in waitlist_service.WAITLISTS))
+    def test_get_waitlists_for_user_failure_not_found(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
+        """Tests failing to retrieve waitlists for a user that doesn't exist."""
+        mock_load_all.return_value = MOCK_WAITLIST_DATA
+
+        with pytest.raises(HTTPException) as excinfo:
+            get_waitlists_for_user("nonExistentUser")
+        
+        assert excinfo.value.status_code == 404
+        assert "No waitlists for 'nonExistentUser' not found" in excinfo.value.detail
+
+    def test_get_waitlists_for_books_success(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
+        """Tests successfully retrieving all waitlists for a specific book (ISBN)."""
+        mock_load_all.return_value = MOCK_WAITLIST_DATA
+        
+        result = get_waitlists_for_books("978-0321765723")
+        
+        assert len(result) == 4
+        assert all(isinstance(wl, WaitList) for wl in result)
+        positions = [wl.position for wl in result]
+        assert sorted(positions) == [1, 2, 3, 4]
+
+    def test_get_waitlists_for_books_failure_not_found(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
+        """Tests failing to retrieve waitlists for a book that doesn't exist."""
+        mock_load_all.return_value = MOCK_WAITLIST_DATA
+
+        with pytest.raises(HTTPException) as excinfo:
+            get_waitlists_for_books("999-9999999999")
+        
+        assert excinfo.value.status_code == 404
+        assert "No waitlists for '999-9999999999' not found" in excinfo.value.detail
+        
+    def test_get_specific_waitlist_success(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
+        """Tests successfully retrieving a single specific waitlist record."""
+        mock_load_all.return_value = MOCK_WAITLIST_DATA
+        
+        result = get_specific_waitlist("userB", "978-0321765723")
+        
+        assert isinstance(result, WaitList)
+        assert result.userid == 'userB'
+        assert result.isbn == '978-0321765723'
+        assert result.position == 2
+
+    def test_get_specific_waitlist_failure_not_found(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
+        """Tests failing to retrieve a specific waitlist that doesn't exist."""
+        mock_load_all.return_value = MOCK_WAITLIST_DATA
+
+        with pytest.raises(HTTPException) as excinfo:
+            get_specific_waitlist("userX", "978-0321765723")
+        
+        assert excinfo.value.status_code == 404
+        assert "No waitlists for user 'userX' under book 978-0321765723 found" in excinfo.value.detail
+
+    def test_delete_waitlists_for_user_success(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
+        """Tests successfully deleting all waitlists for a user."""
+        mock_load_all.return_value = MOCK_WAITLIST_DATA.copy()
+        
+        delete_waitlists_for_user("userA")
+        
         mock_save_all.assert_called_once()
+        saved_data = mock_save_all.call_args[0][0]
+        assert len(saved_data) == 3
+        assert not any(wl['userid'] == 'userA' for wl in saved_data)
+        assert any(wl['userid'] == 'userB' for wl in saved_data)
 
-    @patch('app.services.waitlist_service.save_all')
-    def test_delete_waitlists_for_book_not_found(self, mock_save_all):
-        mock_save_all.return_value = None
-        create_waitlist(WaitListCreate(isbn="BOOKZ", userid="USERZ"))
+    def test_delete_waitlists_for_user_failure_not_found(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
+        """Tests failing to delete waitlists for a user that doesn't exist."""
+        mock_load_all.return_value = MOCK_WAITLIST_DATA.copy()
         
-        mock_save_all.reset_mock()
-
-        with self.assertRaises(HTTPException) as ctx:
-            delete_waitlists_for_book("MISSING_BOOK")
-
-        self.assertEqual(ctx.exception.status_code, 404)
-        self.assertIn("not found", ctx.exception.detail.lower())
+        with pytest.raises(HTTPException) as excinfo:
+            delete_waitlists_for_user("nonExistentUser")
+        
+        assert excinfo.value.status_code == 404
+        assert "Waitlists user nonExistentUser not found" in excinfo.value.detail
         mock_save_all.assert_not_called()
 
-    @patch('app.services.waitlist_service.save_all')
-    def test_delete_specific_waitlist_successful(self, mock_save_all):
-        mock_save_all.return_value = None
-
-        create_waitlist(WaitListCreate(isbn="BOOK1", userid="USER1"))
-        create_waitlist(WaitListCreate(isbn="BOOK1", userid="USER2"))
-        before_len = len(waitlist_service.WAITLISTS)
+    def test_delete_waitlists_for_book_success(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
+        """Tests successfully deleting all waitlists for a book."""
+        mock_load_all.return_value = MOCK_WAITLIST_DATA.copy()
         
-        mock_save_all.reset_mock()
-
-        delete_specific_waitlist("BOOK1", "USER1")
-
-        self.assertEqual(len(waitlist_service.WAITLISTS), before_len - 1)
-        self.assertFalse(any(w['isbn'] == "BOOK1" and w['userid'] == "USER1" for w in waitlist_service.WAITLISTS))
+        delete_waitlists_for_book("978-0321765723")
+        
         mock_save_all.assert_called_once()
+        saved_data = mock_save_all.call_args[0][0]
+        assert len(saved_data) == 1
+        assert saved_data[0]['isbn'] == '978-0134768560'
 
-    @patch('app.services.waitlist_service.save_all')
-    def test_delete_specific_waitlist_not_found(self, mock_save_all):
-        mock_save_all.return_value = None
-        create_waitlist(WaitListCreate(isbn="BOOKX", userid="USERX"))
+    def test_delete_waitlists_for_book_failure_not_found(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
+        """Tests failing to delete waitlists for a book that doesn't exist."""
+        mock_load_all.return_value = MOCK_WAITLIST_DATA.copy()
         
-        mock_save_all.reset_mock()
-
-        with self.assertRaises(HTTPException) as ctx:
-            delete_specific_waitlist("BOOKY", "USERY")
-
-        self.assertEqual(ctx.exception.status_code, 404)
-        self.assertIn("not found", ctx.exception.detail.lower())
+        with pytest.raises(HTTPException) as excinfo:
+            delete_waitlists_for_book("999-9999999999")
+        
+        assert excinfo.value.status_code == 404
+        assert "Waitlists for book '999-9999999999' not found" in excinfo.value.detail
         mock_save_all.assert_not_called()
         
-    
+    def test_delete_specific_waitlist_success(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
+        """Tests successfully deleting a single specific waitlist."""
+        mock_load_all.return_value = MOCK_WAITLIST_DATA.copy()
+        
+        delete_specific_waitlist("978-0321765723", "userB")
+        
+        mock_save_all.assert_called_once()
+        saved_data = mock_save_all.call_args[0][0]
+        assert len(saved_data) == 4
+        assert not any(wl['isbn'] == '978-0321765723' and wl['userid'] == 'userB' for wl in saved_data)
+
+    def test_delete_specific_waitlist_failure_not_found(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
+        """Tests failing to delete a specific waitlist that doesn't exist."""
+        mock_load_all.return_value = MOCK_WAITLIST_DATA.copy()
+        
+        with pytest.raises(HTTPException) as excinfo:
+            delete_specific_waitlist("978-0321765723", "userX")
+        
+        assert excinfo.value.status_code == 404
+        assert "Waitlist for book '978-0321765723' and user userX not found" in excinfo.value.detail
+        mock_save_all.assert_not_called()
+
+    def test_update_waitlists_success_decrement(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
+        """Tests successfully decrementing positions for a book."""
+        mock_load_all.return_value = MOCK_WAITLIST_DATA.copy()
+        
+        update_waitlists("978-0321765723")
+        
+        mock_save_all.assert_called_once()
+        saved_data = mock_save_all.call_args[0][0]
+        
+        updated_positions = [wl['position'] for wl in saved_data if wl['isbn'] == '978-0321765723']
+        assert sorted(updated_positions) == [0, 1, 2, 3]
+        
+        other_book_position = [wl['position'] for wl in saved_data if wl['isbn'] == '978-0134768560']
+        assert other_book_position == [1]
+
+    def test_update_waitlists_no_change_book_not_found(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
+        """Tests calling update_waitlists for a book that has no waitlists."""
+        initial_data = MOCK_WAITLIST_DATA.copy()
+        mock_load_all.return_value = initial_data
+        
+        with pytest.raises(HTTPException) as context:
+            update_waitlists("999-9999999999")
+        
+        mock_save_all.assert_not_called()
+        assert context.value.status_code == status.HTTP_404_NOT_FOUND
     
 _ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-
 
 def test_create_access_token_returns_valid_jwt():
     data = {"sub": "user123", "admin": True}

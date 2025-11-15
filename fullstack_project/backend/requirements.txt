@@ -12,9 +12,9 @@ bcrypt==4.0.1
 # Data Processing (Add if needed)
 pandas
 python-multipart
+Pillow
 
 # Testing
 pytest
 httpx
 pytest-asyncio
-Pillow

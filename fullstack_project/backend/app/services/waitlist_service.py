@@ -33,8 +33,15 @@ def get_waitlists_for_user(userid : str) -> List[WaitList]:
         if waitlist.get('userid') == userid:
             lists.append(WaitList(**waitlist))
     if len(lists) == 0:
-        raise HTTPException(status_code=404, detail=f"No waitlists for '{userid}' not found")
+        raise HTTPException(status_code=404, detail=f"No waitlists for user '{userid}' not found")
     return lists
+
+def get_specific_waitlist(userid : str, isbn : str) -> WaitList:
+    global WAITLISTS
+    for waitlist in WAITLISTS:
+        if waitlist.get('userid') == userid and waitlist.get('isbn') == isbn:
+            return WaitList(**waitlist)
+    raise HTTPException(status_code=404, detail=f"No waitlists for user '{userid}' under book {isbn} found")
 
 def get_waitlists_for_books(isbn : str) -> List[WaitList]:
     global WAITLISTS
@@ -43,14 +50,14 @@ def get_waitlists_for_books(isbn : str) -> List[WaitList]:
         if waitlist.get('isbn') == isbn:
             lists.append(WaitList(**waitlist))
     if len(lists) == 0:
-        raise HTTPException(status_code=404, detail=f"No waitlists for '{isbn}' not found")
+        raise HTTPException(status_code=404, detail=f"No waitlists for book '{isbn}' not found")
     return lists
 
 def delete_waitlists_for_user(userid : str) -> None:
     global WAITLISTS
     new_waitlists = [waitlist for waitlist in WAITLISTS if waitlist.get('userid') != userid]
     if len(new_waitlists) == len(WAITLISTS):
-        raise HTTPException(status_code=404, detail=f"Waitlists user {userid} not found")
+        raise HTTPException(status_code=404, detail=f"Waitlists for user {userid} not found")
     WAITLISTS = new_waitlists
     save_all(WAITLISTS)
     

@@ -22,15 +22,20 @@ from fastapi import HTTPException
 from datetime import datetime
 from fastapi import HTTPException, status
 from jose import jwt
-from app.services import reservation_services
-from app.services.reservation_services import (
+from app.services import reservation_service
+from app.services.reservation_service import (
     get_reservations_by_isbn,
     get_reservations_by_userid,
     get_latest_reservation_by_isbn,
     get_latest_reservation_by_userid,
-    create_reservation
+    create_reservation,
+    delete_reservation,
+    delete_reservations_for_book,
+    delete_reservations_for_user,
+    cancel_reservation
 )
 from app.schemas.reservation import (
+    CANCELLED,
     BookReservation,
     BookReservationCreate,
     RETURNED,
@@ -393,7 +398,7 @@ class TestReservationService(unittest.TestCase):
     #Creates mock reservations for get_reservations_by_isbn and by userid
     def setUp(self):
         now = datetime.now()
-        reservation_services.RESERVATIONS = [
+        reservation_service.RESERVATIONS = [
             {
                 "isbn": "111",
                 "userid": "u1",
@@ -411,6 +416,14 @@ class TestReservationService(unittest.TestCase):
             {
                 "isbn": "222",
                 "userid": "u1",
+                "reservation_date": now.isoformat(),
+                "expiry_date": (now + timedelta(days=3)).isoformat(),
+                "status": RETURNED
+            },
+            {
+                "reservation_id" : "000",
+                "isbn": "223",
+                "userid": "u3",
                 "reservation_date": now.isoformat(),
                 "expiry_date": (now + timedelta(days=3)).isoformat(),
                 "status": RETURNED
@@ -458,7 +471,7 @@ class TestReservationService(unittest.TestCase):
             get_latest_reservation_by_userid("nouser")
         self.assertEqual(context.exception.status_code, 404)
 
-    @patch("app.services.reservation_services.save_all")
+    @patch("app.services.reservation_service.save_all")
     def test_create_reservation_successful(self, mock_save_all):
         mock_save_all.return_value = None
         new_res = BookReservationCreate(
@@ -476,11 +489,11 @@ class TestReservationService(unittest.TestCase):
         self.assertIsInstance(result, BookReservation)
         self.assertEqual(result.status, RETURNED)
 
-    @patch("app.services.reservation_services.save_all")
+    @patch("app.services.reservation_service.save_all")
     def test_create_reservation_book_already_on_loan(self, mock_save_all):
         mock_save_all.return_value = None
 
-        with patch("app.services.reservation_services.get_latest_reservation_by_isbn") as mock_isbn:
+        with patch("app.services.reservation_service.get_latest_reservation_by_isbn") as mock_isbn:
             mock_isbn.return_value = BookReservation(
                 reservation_id="123",
                 isbn="111", userid="u1", status=NOT_RETURNED,
@@ -499,12 +512,12 @@ class TestReservationService(unittest.TestCase):
             self.assertEqual(context.exception.status_code, 403)
             mock_save_all.assert_not_called()
 
-    @patch("app.services.reservation_services.save_all")
+    @patch("app.services.reservation_service.save_all")
     def test_create_reservation_user_has_unreturned_book(self, mock_save_all):
         mock_save_all.return_value = None
 
-        with patch("app.services.reservation_services.get_latest_reservation_by_isbn") as mock_isbn, \
-             patch("app.services.reservation_services.get_latest_reservation_by_userid") as mock_user:
+        with patch("app.services.reservation_service.get_latest_reservation_by_isbn") as mock_isbn, \
+             patch("app.services.reservation_service.get_latest_reservation_by_userid") as mock_user:
 
             mock_isbn.side_effect = HTTPException(status_code=404, detail="No book found")
             mock_user.return_value = BookReservation(
@@ -523,6 +536,90 @@ class TestReservationService(unittest.TestCase):
                 create_reservation(new_res)
             self.assertEqual(context.exception.status_code, 403)
             mock_save_all.assert_not_called()
+            
+    @patch('app.services.reservation_service.save_all')
+    def test_cancel_reservation_successful(self, mock_save_all):
+        mock_save_all.return_value = None
+        
+        result = cancel_reservation("000")
+        
+        mock_save_all.assert_called_once()
+        self.assertEqual(result.status, CANCELLED)
+        self.assertEqual(reservation_service.RESERVATIONS[3]["status"], CANCELLED)
+        
+    @patch('app.services.reservation_service.save_all')
+    def test_cancel_reservation_unsuccessful(self, mock_save_all):
+        mock_save_all.return_value = None
+        
+        with self.assertRaises(HTTPException) as context:
+            cancel_reservation("UNKOWN_RESERVATION_ID")
+        
+        self.assertEqual(context.exception.status_code, 404)
+        mock_save_all.assert_not_called()
+        
+    @patch('app.services.reservation_service.save_all')
+    def test_delete_reservations_unsuccessful(self, mock_save_all):
+        mock_save_all.return_value = None
+        
+        with self.assertRaises(HTTPException) as context:
+            delete_reservation("020")
+        
+        mock_save_all.assert_not_called()
+        self.assertEqual(context.exception.status_code, 404)
+        self.assertEqual(len(reservation_service.RESERVATIONS), 4)
+        
+    @patch('app.services.reservation_service.save_all')
+    def test_delete_reservations_successful(self, mock_save_all):
+        mock_save_all.return_value = None
+        
+        delete_reservation("000")
+        
+        self.assertEqual(len(reservation_service.RESERVATIONS), 3)
+        
+    @patch('app.services.reservation_service.save_all')
+    def test_delete_reservations_for_user_unsuccessful(self, mock_save_all):
+        mock_save_all.return_value = None
+        
+        with self.assertRaises(HTTPException) as context:
+            delete_reservations_for_user("020")
     
+        mock_save_all.assert_not_called()
+        self.assertEqual(context.exception.status_code, 404)
+        self.assertEqual(len(reservation_service.RESERVATIONS), 4)
+        
+    @patch('app.services.reservation_service.save_all')
+    def test_delete_reservations_for_user_successful(self, mock_save_all):
+        mock_save_all.return_value = None
+        
+
+        result = delete_reservations_for_user("u1")
+        
+        mock_save_all.assert_called_once()
+        self.assertEqual(result, 2)
+        self.assertEqual(len(reservation_service.RESERVATIONS), 2)
+        
+    @patch('app.services.reservation_service.save_all')
+    def test_delete_reservations_for_book_unsuccessful(self, mock_save_all):
+        mock_save_all.return_value = None
+        
+        with self.assertRaises(HTTPException) as context:
+            delete_reservations_for_book("150")
+        
+        mock_save_all.assert_not_called()
+        self.assertEqual(context.exception.status_code, 404)
+        self.assertEqual(len(reservation_service.RESERVATIONS), 4)
+        
+    @patch('app.services.reservation_service.save_all')
+    def test_delete_reservations_for_book_successful(self, mock_save_all):
+        mock_save_all.return_value = None
+        
+
+        result = delete_reservations_for_book("111")
+        
+        mock_save_all.assert_called_once()
+        self.assertEqual(result, 2)
+        self.assertEqual(len(reservation_service.RESERVATIONS), 2)
+        
+        
 if __name__ == "__main__":
     pytest.main([__file__]) 

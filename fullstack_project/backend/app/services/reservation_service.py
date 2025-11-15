@@ -1,12 +1,12 @@
 from typing import List
 from datetime import datetime
-import uuid
 from app.schemas.reservation import BookReservation, BookReservationCreate, CANCELLED, NOT_RETURNED, NOT_RETURNED_OVERDUE, RETURNED, RETURNED_OVERDUE
 from app.repositories.reservations_repo import load_all, save_all
 from fastapi import HTTPException,status
 
 RESERVATIONS = load_all()
 
+#Gets all historic reservations for a book
 def get_reservations_by_isbn(isbn : str) -> List[BookReservation]:
     global RESERVATIONS
     found = []
@@ -17,6 +17,7 @@ def get_reservations_by_isbn(isbn : str) -> List[BookReservation]:
         return found
     raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= f"Could not find any reservations for book {isbn}")
 
+#Gets all historic reservations for a user
 def get_reservations_by_userid(userid : str) -> List[BookReservation]:
     global RESERVATIONS
     found = []
@@ -27,6 +28,7 @@ def get_reservations_by_userid(userid : str) -> List[BookReservation]:
         return found
     raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= f"Could not find any reservations for user {userid}")
 
+#Gets the most recent book reservation for a given ISBN
 def get_latest_reservation_by_isbn(isbn : str) -> BookReservation:
     global RESERVATIONS
     curr_date = datetime.now()
@@ -37,6 +39,7 @@ def get_latest_reservation_by_isbn(isbn : str) -> BookReservation:
         return BookReservation(**closest)
     raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= f"Could not find any reservations for book {isbn}")
 
+#Gets the most recent book reservation for a given userid
 def get_latest_reservation_by_userid(userid : str) -> BookReservation:
     global RESERVATIONS
     curr_date = datetime.now()
@@ -47,6 +50,7 @@ def get_latest_reservation_by_userid(userid : str) -> BookReservation:
         return BookReservation(**closest)
     raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= f"Could not find any reservations for user {userid}")
 
+#Creates a reservation if book is available and user has no outstanding loans
 def create_reservation(newReservation : BookReservationCreate) -> BookReservation:
     global RESERVATIONS
     try:
@@ -76,4 +80,58 @@ def create_reservation(newReservation : BookReservationCreate) -> BookReservatio
     save_all(RESERVATIONS)
     return new_record
 
-    
+#Cancels a book reservation
+def cancel_reservation(reservation_id : str) -> BookReservation:
+    global RESERVATIONS
+    for idx, reservation in enumerate(RESERVATIONS):
+        if reservation.get('reservation_id') == reservation_id:
+            updated_reservation = BookReservation(**reservation)
+            updated_reservation.status = CANCELLED
+            RESERVATIONS[idx] = updated_reservation.model_dump()
+            save_all(RESERVATIONS)
+            return updated_reservation
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail= f"Reservation {reservation_id} not found")
+
+#Deletes a book reservation
+def delete_reservation(reservation_id : str) -> None:
+    global RESERVATIONS
+    new_reservations = []
+    for reservation in RESERVATIONS:
+        if reservation.get('reservation_id') == reservation_id:
+            continue
+        new_reservations.append(reservation)
+    if len(new_reservations) == len(RESERVATIONS):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail= f"Reservation {reservation_id} not found")
+    RESERVATIONS = new_reservations
+    save_all(RESERVATIONS)
+    return None
+
+#Deletes all reservations for a given book returns how many were deleted
+def delete_reservations_for_book(isbn : str) -> int:
+    global RESERVATIONS
+    new_reservations = []
+    for reservation in RESERVATIONS:
+        if reservation.get('isbn') == isbn:
+            continue
+        new_reservations.append(reservation)
+    difference = len(RESERVATIONS) - len(new_reservations)
+    if difference == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail= f"No reservations for book {isbn} found")
+    RESERVATIONS = new_reservations
+    save_all(RESERVATIONS)
+    return difference
+
+#Deletes all reservations for a given user returns how many were deleted
+def delete_reservations_for_user(userid : str) -> int:
+    global RESERVATIONS
+    new_reservations = []
+    for reservation in RESERVATIONS:
+        if reservation.get('userid') == userid:
+            continue
+        new_reservations.append(reservation)
+    difference = len(RESERVATIONS) - len(new_reservations)
+    if difference == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail= f"No reservations for user {userid} found")
+    RESERVATIONS = new_reservations
+    save_all(RESERVATIONS)
+    return difference

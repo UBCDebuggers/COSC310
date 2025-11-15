@@ -33,7 +33,7 @@ def get_waitlists_for_user(userid : str) -> List[WaitList]:
         if waitlist.get('userid') == userid:
             lists.append(WaitList(**waitlist))
     if len(lists) == 0:
-        raise HTTPException(status_code=404, detail=f"No waitlists for user '{userid}' not found")
+        raise HTTPException(status_code=404, detail=f"No waitlists for user '{userid}' found")
     return lists
 
 def get_waitlists_for_books(isbn : str) -> List[WaitList]:
@@ -43,7 +43,7 @@ def get_waitlists_for_books(isbn : str) -> List[WaitList]:
         if waitlist.get('isbn') == isbn:
             lists.append(WaitList(**waitlist))
     if len(lists) == 0:
-        raise HTTPException(status_code=404, detail=f"No waitlists for book '{isbn}' not found")
+        raise HTTPException(status_code=404, detail=f"No waitlists for book '{isbn}' found")
     return lists
 
 def delete_waitlists_for_user(userid : str) -> None:

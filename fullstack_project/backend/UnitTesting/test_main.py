@@ -140,7 +140,7 @@ class TestWaitlistService(unittest.TestCase):
             get_waitlists_for_user("NonExistingUser")
 
         self.assertEqual(context.exception.status_code, 404)
-        self.assertIn("No waitlists for 'NonExistingUser' not found", context.exception.detail)
+        self.assertIn("No waitlists for user 'NonExistingUser' found", context.exception.detail)
 
     @patch('app.services.waitlist_service.save_all')
     def test_get_waitlists_for_books_successful(self, mock_save_all):
@@ -168,7 +168,7 @@ class TestWaitlistService(unittest.TestCase):
             get_waitlists_for_books("UNKNOWNBOOK")
 
         self.assertEqual(context.exception.status_code, 404)
-        self.assertIn("No waitlists for 'UNKNOWNBOOK' not found", context.exception.detail)
+        self.assertIn("No waitlists for book 'UNKNOWNBOOK' found", context.exception.detail)
 
     @patch('app.services.waitlist_service.save_all')
     def test_delete_waitlists_for_user_successful(self, mock_save_all):
@@ -562,7 +562,7 @@ class TestReservationService(unittest.TestCase):
         mock_save_all.return_value = None
         
         with self.assertRaises(HTTPException) as context:
-            delete_reservation("020")
+            delete_reservation("UNKNOWN_BOOK")
         
         mock_save_all.assert_not_called()
         self.assertEqual(context.exception.status_code, 404)
@@ -581,7 +581,7 @@ class TestReservationService(unittest.TestCase):
         mock_save_all.return_value = None
         
         with self.assertRaises(HTTPException) as context:
-            delete_reservations_for_user("020")
+            delete_reservations_for_user("UNKNOWN_BOOK")
     
         mock_save_all.assert_not_called()
         self.assertEqual(context.exception.status_code, 404)
@@ -603,7 +603,7 @@ class TestReservationService(unittest.TestCase):
         mock_save_all.return_value = None
         
         with self.assertRaises(HTTPException) as context:
-            delete_reservations_for_book("150")
+            delete_reservations_for_book("UNKNOWN_BOOK")
         
         mock_save_all.assert_not_called()
         self.assertEqual(context.exception.status_code, 404)

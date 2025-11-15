@@ -36,13 +36,6 @@ def get_waitlists_for_user(userid : str) -> List[WaitList]:
         raise HTTPException(status_code=404, detail=f"No waitlists for user '{userid}' not found")
     return lists
 
-def get_specific_waitlist(userid : str, isbn : str) -> WaitList:
-    global WAITLISTS
-    for waitlist in WAITLISTS:
-        if waitlist.get('userid') == userid and waitlist.get('isbn') == isbn:
-            return WaitList(**waitlist)
-    raise HTTPException(status_code=404, detail=f"No waitlists for user '{userid}' under book {isbn} found")
-
 def get_waitlists_for_books(isbn : str) -> List[WaitList]:
     global WAITLISTS
     lists = []

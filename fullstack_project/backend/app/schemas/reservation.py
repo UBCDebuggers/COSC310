@@ -15,7 +15,7 @@ class BookReservation(BaseModel):
     reservation_date : datetime = Field(default_factory=datetime.now)
     status : int = RETURNED
     expiry_date : datetime = Field(default_factory= lambda:
-                                    (datetime.now() + timedelta(days=14)))
+                                    (datetime.now() + timedelta(days=1)))
     
 class BookReservationCreate(BaseModel):
     userid : str

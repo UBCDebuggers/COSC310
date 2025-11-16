@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from app.schemas.book import Book, BookCreate, BookUpdate
 from app.schemas.filter import Filter
 from app.repositories.books_repo import load_all, save_all
-    
+
 #Searches for a book by its title given a string. Returns the top 10 books that have the most matches by characters and words
 def search_books(tokens : str, filter_data : Filter) -> List[Book]:
     books = load_all()
@@ -132,4 +132,4 @@ def FindImage(x):
         # Make your variable (e.g. my_image = FindImage(url)
         # Create an if statement of whether or not my_image has a file there or not (None)
             # If so, then my_image.show())
-            # Else, print an error
+            # Else, print an erro

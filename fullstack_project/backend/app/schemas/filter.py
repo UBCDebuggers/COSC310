@@ -1,10 +1,8 @@
 from pydantic import BaseModel
-
-class DateRange(BaseModel):
-    min : int | None
-    max : int | None
+from typing import Optional
 
 class Filter(BaseModel):
-    author : str | None
-    publisher : str | None
-    publish_date_range : DateRange | None
+    author : Optional[str] = None
+    publisher : Optional[str] = None
+    publish_date_min : Optional[int] = None
+    publish_date_max : Optional[int] = None

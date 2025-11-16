@@ -5,13 +5,12 @@ from fastapi import HTTPException
 from app.schemas.book import Book, BookCreate, BookUpdate
 from app.schemas.filter import Filter
 from app.repositories.books_repo import load_all, save_all
-
-BOOKS = load_all()
     
 #Searches for a book by its title given a string. Returns the top 10 books that have the most matches by characters and words
 def search_books(tokens : str, filter_data : Filter) -> List[Book]:
+    books = load_all()
     results_list = []
-    filtered_books = filter(filter_data, BOOKS)
+    filtered_books = filter(filter_data, books)
     
     tokens = tokens.lower()
     token_words = [w for w in re.split(r"[ .,/?;()]", tokens) if w]
@@ -61,50 +60,58 @@ def filter(filter_data : Filter, books : List) -> List[Book]:
 
     return results
 
+#Creates a book
 def create_book(newBook: BookCreate) -> Book:
-    if any(book.get("ISBN") == newBook.isbn for book in BOOKS):
+    books = load_all()
+    if any(book.get("isbn") == newBook.isbn for book in books):
         raise HTTPException(status_code=409, detail="ISBN collision; retry.")
     
     new_record = Book(isbn = newBook.isbn.strip(),
                       title = newBook.title.strip(),
                       author = newBook.author.strip(),
-                      year_of_publication = newBook.year_of_publication.strip(),
+                      year_of_publication = newBook.year_of_publication,
                       publisher = newBook.publisher.strip(),
                       img_url_s = newBook.img_url_s.strip(),
                       img_url_m = newBook.img_url_m.strip(),
                       img_url_l = newBook.img_url_l.strip()
                       )
-    BOOKS.append(new_record.model_dump())
-    save_all(BOOKS)
+    books.append(new_record.model_dump())
+    save_all(books)
     return new_record
 
+#Returns a book using ISBN
 def get_book_by_isbn(book_isbn: str) -> Book:
-    for book in BOOKS:
+    books = load_all()
+    for book in books:
         if book.get('isbn') == book_isbn:
             return Book(**book)
     raise HTTPException(status_code=404, detail=f"Book '{book_isbn}' not found")
 
+#Updates a book
 def update_book(book_isbn: str, bookUpdate : BookUpdate) -> Book:
-    for id, book in enumerate(BOOKS):
+    books = load_all()
+    for id, book in enumerate(books):
         if book.get("isbn") == book_isbn:
             updated = Book(isbn = bookUpdate.isbn.strip(),
                       title = bookUpdate.title.strip(),
                       author = bookUpdate.author.strip(),
-                      year_of_publication = bookUpdate.year_of_publication.strip(),
+                      year_of_publication = bookUpdate.year_of_publication,
                       publisher = bookUpdate.publisher.strip(),
                       img_url_s = bookUpdate.img_url_s.strip(),
                       img_url_m = bookUpdate.img_url_m.strip(),
                       img_url_l = bookUpdate.img_url_l.strip()
                       )
-            BOOKS[id] = updated.model_dump()
-            save_all(BOOKS)
+            books[id] = updated.model_dump()
+            save_all(books)
             return updated
     raise HTTPException(status_code=404, detail=f"Book '{book_isbn}' not found")
 
+#Deletes a book using an ISBN
 def delete_book(book_isbn: str) -> None:
-    new_books = [book for book in BOOKS if book.get("isbn") != book_isbn]
-    if len(new_books) == len(BOOKS):
-        HTTPException(status_code=404, detail=f"Book '{book_isbn}' not found")
+    books = load_all()
+    new_books = [book for book in books if book.get("isbn") != book_isbn]
+    if len(new_books) == len(books):
+        raise HTTPException(status_code=404, detail=f"Book '{book_isbn}' not found")
     save_all(new_books)
         
             

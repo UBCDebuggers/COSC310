@@ -48,16 +48,16 @@ def filter(filter_data : Filter, books : List) -> List[Book]:
         return books
     filter_author = filter_data.author.lower() if filter_data.author else None
     filter_publisher = filter_data.publisher.lower() if filter_data.publisher else None
-    date_range = filter_data.publish_date_range
-
+    filter_min_year = filter_data.publish_date_min if filter_data.publish_date_min else None
+    filter_max_year = filter_data.publish_date_max if filter_data.publish_date_max else None
     results = [
         book for book in books
         if ((filter_author is None or book.get("author").lower() == filter_author) 
             and (filter_publisher is None or book.get('publisher').lower() == filter_publisher) 
-            and (date_range is None or (
-                (date_range.min is None or int(book["year_of_publication"]) >= date_range.min)
-                and (date_range.max is None or int(book["year_of_publication"]) <= date_range.max)
-            )
+            and (
+                (filter_min_year is None or int(book["year_of_publication"]) >= filter_min_year)
+                and (filter_max_year is None or int(book["year_of_publication"]) <= filter_max_year)
+            
             )
         )
     ]

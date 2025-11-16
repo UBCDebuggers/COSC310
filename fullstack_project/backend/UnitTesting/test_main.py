@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch, ANY
 from datetime import datetime, timedelta, timezone
 from app.core.security import _ALGORITHM, _SECRET_KEY, create_access_token, verify_access_token
+from app.schemas.book import Book, BookCreate, BookUpdate
 from app.schemas.filter import Filter
 from app.schemas.user import User, UserCreate
 from app.schemas.authentication import LoginRequest

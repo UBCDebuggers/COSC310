@@ -2,8 +2,7 @@ import unittest
 from unittest.mock import patch, ANY
 from datetime import datetime, timedelta, timezone
 from app.core.security import _ALGORITHM, _SECRET_KEY, create_access_token, verify_access_token
-from app.schemas.book import Book, BookCreate, BookUpdate
-from app.schemas.filter import DateRange, Filter
+from app.schemas.filter import Filter
 from app.schemas.user import User, UserCreate
 from app.schemas.authentication import LoginRequest
 import pytest
@@ -297,9 +296,7 @@ def test_verify_access_token_missing_userid():
     
 # test filter by author
 def test_filter_author():
-    query = Filter(author="Kathleen E. Woodiwiss",
-                    publisher=None,
-                    publish_date_range= None)
+    query = Filter(author="Kathleen E. Woodiwiss")
     books = [{'isbn': '0380816792', 'title': 'A Rose in Winter', 'author': 'Kathleen E. Woodiwiss', 'year_of_publication': '2011', 'publisher': 'Harper Mass Market Paperbacks'}, 
              {'isbn': '068160204X', 'title': 'The Royals', 'author': 'Kitty Kelley', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
              {'isbn': '068107468X', 'title': 'Edgar Allen Poe Collected Poems', 'author': 'Edgar Allan Poe', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
@@ -309,9 +306,7 @@ def test_filter_author():
 
 # test filter by publisher
 def test_filter_publisher():
-    query = Filter(author=None,
-                    publisher="Harper Mass Market Paperbacks",
-                    publish_date_range= None)
+    query = Filter( publisher="Harper Mass Market Paperbacks")
     books = [{'isbn': '0380816792', 'title': 'A Rose in Winter', 'author': 'Kathleen E. Woodiwiss', 'year_of_publication': '2011', 'publisher': 'Harper Mass Market Paperbacks'}, 
              {'isbn': '068160204X', 'title': 'The Royals', 'author': 'Kitty Kelley', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
              {'isbn': '068107468X', 'title': 'Edgar Allen Poe Collected Poems', 'author': 'Edgar Allan Poe', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
@@ -321,9 +316,7 @@ def test_filter_publisher():
 
 # test filter by bounded date ranges
 def test_filter_date():
-    query = Filter(author=None,
-                    publisher=None,
-                    publish_date_range= DateRange(min=2019, max=2022))
+    query = Filter(publish_date_min= 2019, publish_date_max= 2022)
     books = [{'isbn': '0380816792', 'title': 'A Rose in Winter', 'author': 'Kathleen E. Woodiwiss', 'year_of_publication': '2011', 'publisher': 'Harper Mass Market Paperbacks'}, 
              {'isbn': '068160204X', 'title': 'The Royals', 'author': 'Kitty Kelley', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
              {'isbn': '068107468X', 'title': 'Edgar Allen Poe Collected Poems', 'author': 'Edgar Allan Poe', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
@@ -335,9 +328,7 @@ def test_filter_date():
 
 # test filter by unbounded date ranges
 def test_filter_date_single():
-    query = Filter(author=None,
-                    publisher=None,
-                    publish_date_range= DateRange(min=None, max=2019))
+    query = Filter(publish_date_max= 2019)
     books = [{'isbn': '0380816792', 'title': 'A Rose in Winter', 'author': 'Kathleen E. Woodiwiss', 'year_of_publication': '2011', 'publisher': 'Harper Mass Market Paperbacks'}, 
              {'isbn': '068160204X', 'title': 'The Royals', 'author': 'Kitty Kelley', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
              {'isbn': '068107468X', 'title': 'Edgar Allen Poe Collected Poems', 'author': 'Edgar Allan Poe', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
@@ -346,9 +337,7 @@ def test_filter_date_single():
     filtered_results = filter(query, books)
     assert all(int(book.get('year_of_publication')) <= 2019 for book in filtered_results)
     
-    query = Filter(author=None,
-                    publisher=None,
-                    publish_date_range= DateRange(min=2012, max= None))
+    query = Filter(publish_date_min= 2012)
     books = [{'isbn': '0380816792', 'title': 'A Rose in Winter', 'author': 'Kathleen E. Woodiwiss', 'year_of_publication': '2011', 'publisher': 'Harper Mass Market Paperbacks'}, 
              {'isbn': '068160204X', 'title': 'The Royals', 'author': 'Kitty Kelley', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 
              {'isbn': '068107468X', 'title': 'Edgar Allen Poe Collected Poems', 'author': 'Edgar Allan Poe', 'year_of_publication': '2020', 'publisher': 'Bausch & Lombard'}, 

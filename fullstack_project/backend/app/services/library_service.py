@@ -40,6 +40,6 @@ def borrow_book(userid : str,  isbn : str, is_admin : bool, due_date : datetime)
     except HTTPException as e:
         if e.status_code == status.HTTP_404_NOT_FOUND:
             create_reservation(BookReservationCreate(isbn=isbn, userid=userid, expiry_date=due_date))
-            return {"message": "Book reserved successfully. Please visit a librarian as soon as possible get the book."}
+            return {"message": "Book reserved successfully. Please visit a librarian as soon as possible finish the transaction."}
         else:
             raise e

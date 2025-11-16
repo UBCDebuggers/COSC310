@@ -52,7 +52,7 @@ def test_book_available_success(mock_services : MagicMock, test_data):
         test_data['user_id'], test_data['isbn'], is_admin=False, due_date=test_data['due_date']
     )
 
-    assert result["message"] == "Book reserved successfully."
+    assert result["message"] == "Book reserved successfully. Please visit a librarian as soon as possible finish the transaction."
     mock_services['create_reservation'].assert_called_once()
     mock_services['create_waitlist'].assert_not_called()
 

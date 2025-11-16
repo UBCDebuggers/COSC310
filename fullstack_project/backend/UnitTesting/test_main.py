@@ -145,7 +145,7 @@ class TestWaitlistFunctions:
             get_waitlists_for_user("nonExistentUser")
         
         assert excinfo.value.status_code == 404
-        assert "No waitlists for 'nonExistentUser' not found" in excinfo.value.detail
+        assert "No waitlists for user 'nonExistentUser' found" in excinfo.value.detail
 
     def test_get_waitlists_for_books_success(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
         """Tests successfully retrieving all waitlists for a specific book (ISBN)."""
@@ -166,7 +166,7 @@ class TestWaitlistFunctions:
             get_waitlists_for_books("999-9999999999")
         
         assert excinfo.value.status_code == 404
-        assert "No waitlists for '999-9999999999' not found" in excinfo.value.detail
+        assert "No waitlists for book '999-9999999999' found" in excinfo.value.detail
         
     def test_get_specific_waitlist_success(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
         """Tests successfully retrieving a single specific waitlist record."""

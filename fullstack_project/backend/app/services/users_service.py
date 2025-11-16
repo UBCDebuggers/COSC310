@@ -6,7 +6,7 @@ from app.schemas.authentication import LoginRequest
 from app.schemas.user import User, UserCreate, UserUpdate
 from app.repositories.users_repo import load_all, save_all
 from app.core.security import bcrypt_context
-from warnings import deprecated
+import warnings
 
 #Returns a list of all users on the system
 def list_users() -> List[User]:
@@ -49,7 +49,7 @@ def get_user_by_email(email: str) -> User:
     raise HTTPException(status_code=404, detail=f"Email: '{email}' not found")
 
 #Gets a users details using their username
-@deprecated("Use get_user_by_email() or get_user_by_id() instead")
+@warnings.deprecated("Use get_user_by_email() or get_user_by_id() instead")
 def get_user_by_username(username : str) -> User:
     users = load_all()
     for user in users:

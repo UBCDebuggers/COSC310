@@ -124,19 +124,4 @@ def FindImage(x):
         # Make your variable (e.g. my_image = FindImage(url)
         # Create an if statement of whether or not my_image has a file there or not (None)
             # If so, then my_image.show())
-            # Else, print an error
-
-# Checks if a student has opened a book before (using history.csv)
-def User_opening_book(user_id: str, book_isbn: str) -> bool:
-    try:
-        with open('app/data/history.csv', 'r', encoding='utf-8') as file:
-            lines = file.readlines()
-            for line in lines[1:]:  # Skip header
-                record = line.strip().split('; ')
-                if len(record) >= 2:
-                    record_user_id, record_isbn = record[0], record[1]
-                    if record_user_id == user_id and record_isbn == book_isbn:
-                        return True
-    except FileNotFoundError:
-        pass  # If the file doesn't exist, the user hasn't opened any books yet
-    return False
+            # Else, print an erro

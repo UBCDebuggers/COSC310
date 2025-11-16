@@ -1,8 +1,8 @@
 from datetime import datetime
 from app.schemas.reservation import BookReservationCreate, NOT_RETURNED
 from app.schemas.waitlist import WaitListCreate
-from reservation_service import create_reservation
-from waitlist_service import create_waitlist, get_waitlists_for_books, get_specific_waitlist, delete_specific_waitlist
+from app.services.reservation_service import create_reservation
+from app.services.waitlist_service import create_waitlist, get_waitlists_for_books, get_specific_waitlist, delete_specific_waitlist
 from fastapi import HTTPException, status
 
 def borrow_book(userid : str,  isbn : str, is_admin : bool, due_date : datetime):
@@ -25,7 +25,7 @@ def borrow_book(userid : str,  isbn : str, is_admin : bool, due_date : datetime)
         else:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, 
-                detail="Please try again when at the top of the waitlist!"
+                detail="Please try again when you are at the top of the waitlist!"
             )
             
     except HTTPException as e:
@@ -40,6 +40,6 @@ def borrow_book(userid : str,  isbn : str, is_admin : bool, due_date : datetime)
     except HTTPException as e:
         if e.status_code == status.HTTP_404_NOT_FOUND:
             create_reservation(BookReservationCreate(isbn=isbn, userid=userid, expiry_date=due_date))
-            return {"message": "Book reserved successfully."}
+            return {"message": "Book reserved successfully. Please visit a librarian as soon as possible get the book."}
         else:
             raise e

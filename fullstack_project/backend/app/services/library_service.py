@@ -1,7 +1,7 @@
 from datetime import datetime
-from app.schemas.reservation import BookReservationCreate, NOT_RETURNED
+from app.schemas.reservation import RETURNED, RETURNED_OVERDUE, BookReservationCreate, NOT_RETURNED
 from app.schemas.waitlist import WaitListCreate
-from app.services.reservation_service import create_reservation, update_reservation
+from app.services.reservation_service import create_reservation, update_reservation, get_latest_reservation_by_isbn
 from app.services.waitlist_service import create_waitlist, get_waitlists_for_books, get_specific_waitlist, delete_specific_waitlist
 from fastapi import HTTPException, status
 
@@ -45,4 +45,13 @@ def borrow_book(userid : str,  isbn : str, is_admin : bool, due_date : datetime)
             raise e
         
 def return_book(userid : str, isbn : str) -> dict:
-    pass
+    reservation = get_latest_reservation_by_isbn(isbn)
+    if reservation.userid != userid:
+        raise HTTPException(status_code= status.HTTP_406_NOT_ACCEPTABLE, detail= f"User {userid} has not reserved book {isbn}")
+    is_overdue = reservation.expiry_date < datetime.now()
+    new_record = BookReservationCreate(isbn= reservation.isbn,
+                                        userid= reservation.userid,
+                                       expiry_date= reservation.expiry_date,
+                                       status= RETURNED_OVERDUE if is_overdue else RETURNED)
+    update_reservation(reservation.reservation_id, new_record)
+    return {"message": "Book successfully returned!"}

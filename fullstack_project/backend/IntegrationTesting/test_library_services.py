@@ -3,7 +3,8 @@ from unittest import mock
 from unittest.mock import MagicMock
 from fastapi import HTTPException, status
 import pytest
-from app.services.library_service import borrow_book
+from app.schemas.reservation import RETURNED, RETURNED_OVERDUE
+from app.services.library_service import borrow_book, return_book
 
 
 MOCK_PATH = {
@@ -103,3 +104,71 @@ def test_on_waitlist_not_top_denied(mock_services, test_data):
 
     assert excinfo.value.status_code == status.HTTP_403_FORBIDDEN
     assert "try again when you are at the top of the waitlist!" in excinfo.value.detail
+    
+@pytest.fixture
+def mock_return_mocks(mocker):
+    """Mocks functions used inside return_book."""
+    return {
+        "get_latest_reservation_by_isbn": mocker.patch("app.services.library_service.get_latest_reservation_by_isbn"),
+        "update_reservation": mocker.patch("app.services.library_service.update_reservation"),
+        "BookReservationCreate": mocker.patch("app.services.library_service.BookReservationCreate"),
+    }
+
+
+class MockReservation:
+    """Simple mock reservation object."""
+    def __init__(self, userid, isbn, expiry_date, reservation_id="ABC123"):
+        self.userid = userid
+        self.isbn = isbn
+        self.expiry_date = expiry_date
+        self.reservation_id = reservation_id
+
+
+def test_return_book_success_not_overdue(mock_return_mocks):
+    """Test when a user returns a book on time."""
+    expiry = datetime.now() + timedelta(days=1)
+    mock_res = MockReservation("u1", "B1", expiry)
+
+    mock_return_mocks["get_latest_reservation_by_isbn"].return_value = mock_res
+
+    result = return_book("u1", "B1")
+
+    assert result["message"] == "Book successfully returned!"
+
+    mock_return_mocks["BookReservationCreate"].assert_called_once()
+    args, kwargs = mock_return_mocks["BookReservationCreate"].call_args
+    assert kwargs["status"] == RETURNED
+
+    mock_return_mocks["update_reservation"].assert_called_once_with(
+        mock_res.reservation_id, mock_return_mocks["BookReservationCreate"]()
+    )
+
+
+def test_return_book_success_overdue(mock_return_mocks):
+    """Test when a user returns a book after the due date."""
+    expiry = datetime.now() - timedelta(days=1)
+    mock_res = MockReservation("u1", "B1", expiry)
+
+    mock_return_mocks["get_latest_reservation_by_isbn"].return_value = mock_res
+
+    result = return_book("u1", "B1")
+
+    assert result["message"] == "Book successfully returned!"
+
+    mock_return_mocks["BookReservationCreate"].assert_called_once()
+    args, kwargs = mock_return_mocks["BookReservationCreate"].call_args
+    assert kwargs["status"] == RETURNED_OVERDUE
+
+
+def test_return_book_wrong_user(mock_return_mocks):
+    """Error if someone attempts to return a book they did not borrow."""
+    mock_res = MockReservation("actual_user", "B1", datetime.now())
+
+    mock_return_mocks["get_latest_reservation_by_isbn"].return_value = mock_res
+
+    with pytest.raises(HTTPException) as excinfo:
+        return_book("wrong_user", "B1")
+
+    assert excinfo.value.status_code == status.HTTP_406_NOT_ACCEPTABLE
+    mock_return_mocks["update_reservation"].assert_not_called()
+    mock_return_mocks["BookReservationCreate"].assert_not_called()

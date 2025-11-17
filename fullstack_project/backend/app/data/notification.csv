@@ -47,3 +47,8 @@ student1;6a2dc8b9-7862-462e-8ae8-74847df4ce03;due_reminder;Reminder: your borrow
 student2;3a8ab4ed-acac-45d3-bec7-9feffacde4d1;overdue;Overdue: your borrowed book (ISBN: isbn-222) was due on 2025-11-15T07:27:50.580963+00:00. Please return it immediately.;2025-11-17T07:27:50.641836+00:00;false;borrow2;borrow
 studentA;10aa6922-4043-41e6-9473-8052bff332c8;waitlist;Book with ISBN isbn-xyz is now available!;2025-11-17T07:27:50.763780+00:00;false;isbn-xyz;book_available
 studentB;0a1cad9c-564f-4c7f-942c-a0adba6a884b;waitlist;Book with ISBN isbn-xyz is now available!;2025-11-17T07:27:50.786542+00:00;false;isbn-xyz;book_available
+student9;906fefd0-bd5d-44c7-a166-700b2a65f1ad;test;please read;2025-11-17T07:41:37.419825+00:00;true;related1;info
+student1;78dc58bb-0cc5-4e5e-ab07-e167aa48f161;due_reminder;Reminder: your borrowed book (ISBN: isbn-111) is due on 2025-11-19T07:41:37.505109+00:00;2025-11-17T07:41:37.538390+00:00;false;borrow1;borrow
+student2;fc418546-6d71-4a97-996e-87e2494b7a5d;overdue;Overdue: your borrowed book (ISBN: isbn-222) was due on 2025-11-15T07:41:37.505109+00:00. Please return it immediately.;2025-11-17T07:41:37.576059+00:00;false;borrow2;borrow
+studentA;939c42b2-8d14-4c45-9027-83b80b0ac6a7;waitlist;Book with ISBN isbn-xyz is now available!;2025-11-17T07:41:37.692163+00:00;false;isbn-xyz;book_available
+studentB;7b07a46f-8521-4121-9c56-1583ffa95d16;waitlist;Book with ISBN isbn-xyz is now available!;2025-11-17T07:41:37.717222+00:00;false;isbn-xyz;book_available

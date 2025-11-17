@@ -12,11 +12,11 @@ from app.services import waitlist_service
 from app.services.users_service import create_user, authenticate_user, delete_user, get_user_by_email, get_user_by_id, get_user_by_username, list_users, update_user
 from app.services.books_service import create_book, delete_book, filter, get_book_by_isbn, search_books, update_book
 from app.services.waitlist_service import (create_waitlist, 
-                                           delete_specific_waitlist,
+                                           delete_specific_waitlist, get_specific_waitlist,
                                            get_waitlists_for_books, 
                                            get_waitlists_for_user, 
                                            delete_waitlists_for_user, 
-                                           delete_waitlists_for_book
+                                           delete_waitlists_for_book, update_waitlists
 )
 from app.schemas.requests import Request, RequestCreate
 from app.schemas.waitlist import WaitList, WaitListCreate

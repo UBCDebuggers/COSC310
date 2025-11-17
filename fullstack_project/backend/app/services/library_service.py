@@ -1,11 +1,11 @@
 from datetime import datetime
 from app.schemas.reservation import BookReservationCreate, NOT_RETURNED
 from app.schemas.waitlist import WaitListCreate
-from app.services.reservation_service import create_reservation
+from app.services.reservation_service import create_reservation, update_reservation
 from app.services.waitlist_service import create_waitlist, get_waitlists_for_books, get_specific_waitlist, delete_specific_waitlist
 from fastapi import HTTPException, status
 
-def borrow_book(userid : str,  isbn : str, is_admin : bool, due_date : datetime):
+def borrow_book(userid : str,  isbn : str, is_admin : bool, due_date : datetime) -> dict:
     try:
         waitlist_entry = get_specific_waitlist(userid, isbn)
         position = waitlist_entry.position
@@ -43,3 +43,6 @@ def borrow_book(userid : str,  isbn : str, is_admin : bool, due_date : datetime)
             return {"message": "Book reserved successfully. Please visit a librarian as soon as possible finish the transaction."}
         else:
             raise e
+        
+def return_book(userid : str, isbn : str) -> dict:
+    pass

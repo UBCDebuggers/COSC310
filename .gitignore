@@ -18,9 +18,3 @@
 .env
 .env.local
 .env.*.local
-
-# --------------------
-# 4. PYTHON BUILD ARTIFACTS
-# --------------------
-**/__pycache__/
-*.py[cod]

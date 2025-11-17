@@ -31,7 +31,3 @@ def save_all(books: List[Dict[str, Any]]) -> None:
     
     os.replace(tmp, DATA_PATH)
 
-#  we got the title by its matching ISBN from the books_repo.py and then here we update our record of title .
-if __name__ == "__main__":
-    isbn_to_title = books_repo.get_isbn_title_map()
-    record["title"] = isbn_to_title.get(record["book_id"], "Unknown")

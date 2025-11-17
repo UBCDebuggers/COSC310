@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import uuid
 from pydantic import BaseModel, Field
 
@@ -15,11 +15,11 @@ class BookReservation(BaseModel):
     reservation_date : datetime = Field(default_factory=datetime.now)
     status : int = RETURNED
     expiry_date : datetime = Field(default_factory= lambda:
-                                    (datetime.now() + timedelta(days=1)))
+                                    (datetime.now(timezone.utc) + timedelta(days=1)))
     
 class BookReservationCreate(BaseModel):
     userid : str
     isbn : str
     status : int = RETURNED
     expiry_date : datetime = Field(default_factory=
-                                   (datetime.now() + timedelta(days=14)))
+                                   (datetime.now(timezone.utc) + timedelta(days=14)))

@@ -1,5 +1,5 @@
 from typing import List
-from datetime import datetime
+from datetime import datetime, timezone
 from app.schemas.reservation import BookReservation, BookReservationCreate, CANCELLED, NOT_RETURNED, NOT_RETURNED_OVERDUE, RETURNED, RETURNED_OVERDUE
 from app.repositories.reservations_repo import load_all, save_all
 from fastapi import HTTPException,status
@@ -51,9 +51,10 @@ def get_latest_reservation_by_userid(userid : str) -> BookReservation:
 #Creates a reservation if book is available and user has no outstanding loans
 def create_reservation(newReservation : BookReservationCreate) -> BookReservation:
     reservations = load_all()
+    now = datetime.now(timezone.utc)
     try:
         book = get_latest_reservation_by_isbn(newReservation.isbn)
-        if book.status in [NOT_RETURNED, NOT_RETURNED_OVERDUE]:
+        if book.status in [NOT_RETURNED, NOT_RETURNED_OVERDUE] or book.expiry_date < now:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     except HTTPException as e:
         if e.status_code == status.HTTP_403_FORBIDDEN:
@@ -62,7 +63,7 @@ def create_reservation(newReservation : BookReservationCreate) -> BookReservatio
         
     try:
         user = get_latest_reservation_by_userid(newReservation.userid)
-        if user.status in [NOT_RETURNED, NOT_RETURNED_OVERDUE]:
+        if user.status in [NOT_RETURNED, NOT_RETURNED_OVERDUE] or user.expiry_date < now:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     except HTTPException as e:
         if e.status_code == status.HTTP_403_FORBIDDEN:

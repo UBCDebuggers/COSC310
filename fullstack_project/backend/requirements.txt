@@ -18,7 +18,5 @@ Pillow
 pytest
 httpx
 pytest-asyncio
-
-Pillow
 Deprecated
 pytest-mock

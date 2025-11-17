@@ -1,14 +1,15 @@
 import unittest
+from unittest import mock
 from unittest.mock import MagicMock, patch, ANY
 from datetime import datetime, timedelta, timezone
 from app.core.security import _ALGORITHM, _SECRET_KEY, create_access_token, verify_access_token
 from app.schemas.book import Book, BookCreate, BookUpdate
 from app.schemas.filter import Filter
-from app.schemas.user import User, UserCreate
+from app.schemas.user import User, UserCreate, UserUpdate
 from app.schemas.authentication import LoginRequest
 import pytest
 from app.services import waitlist_service
-from app.services.users_service import create_user, authenticate_user
+from app.services.users_service import create_user, authenticate_user, delete_user, get_user_by_email, get_user_by_id, get_user_by_username, list_users, update_user
 from app.services.books_service import create_book, delete_book, filter, get_book_by_isbn, search_books, update_book
 from app.services.waitlist_service import create_waitlist, delete_specific_waitlist, get_specific_waitlist, get_waitlists_for_books, get_waitlists_for_user, delete_waitlists_for_user, delete_waitlists_for_book, update_waitlists
 from app.schemas.requests import Request, RequestCreate
@@ -37,40 +38,254 @@ from app.schemas.reservation import (
     NOT_RETURNED,
     NOT_RETURNED_OVERDUE
 )
+import uuid
 
-def test_create_user_success():
-    # Arrange
-    test_request = UserCreate(
-        email = "test",
-        password = "123",
-        username = "  hello world  ",
-        is_admin = "no",
-        department = "test",
-        age = 0,
-        firstname = 'john',
-        lastname = 'doe'
+@pytest.fixture
+def mock_user_data():
+    """Provides a list of mock user dictionaries matching the storage format."""
+    return [
+        {"userid": "user-a", "email": "alice@example.com", "hash_password": "hashed_alice", "is_admin": "False", "department": "HR", "age": 30, "username": "alice_hr", "firstname": "Alice", "lastname": "Smith"},
+        {"userid": "user-b", "email": "bob@example.com", "hash_password": "hashed_bob", "is_admin": "True", "department": "IT", "age": 45, "username": "bob_it", "firstname": "Bob", "lastname": "Jones"},
+    ]
+
+@pytest.fixture
+def mock_new_user_create():
+    """Provides a mock UserCreate payload."""
+    return UserCreate(
+        email="charlie@example.com ",
+        password="secret_password ",
+        is_admin="False ",
+        department="Finance ",
+        age=25,
+        username="charlie_fin ",
+        firstname="Charlie ",
+        lastname="Brown "
     )
+
+@pytest.fixture
+def mock_user_update_payload():
+    """Provides a mock UserUpdate payload."""
+    return UserUpdate(
+        email="updated@example.com ",
+        password="new_password ",
+        is_admin="True ",
+        department="Executive ",
+        age=55,
+        username="top_brass ",
+        firstname="Top ",
+        lastname="Brass "
+    )
+
+def test_list_users_success(mocker, mock_user_data):
+    """Tests successful retrieval and conversion of all users."""
+    mocker.patch('app.services.users_service.load_all', return_value=mock_user_data)
     
-    # Act
-    result = create_user(test_request)
+    users = list_users()
     
-    # Assert
-    assert isinstance(result, User)
-    assert result.username == "hello world"
-    assert result.firstname == "john"
-    assert result.hash_password != "123"
+    assert len(users) == 2
+    assert isinstance(users[0], User)
+    assert users[1].email == "bob@example.com"
+
+def test_list_users_empty(mocker):
+    """Tests retrieval when no users exist."""
+    mocker.patch('app.services.users_service.load_all', return_value=[])
+    
+    users = list_users()
+    
+    assert len(users) == 0
+
+def test_create_user_success(mocker, mock_user_data, mock_new_user_create):
+    """Tests successful creation of a new user."""
+    mock_load = mocker.patch('app.services.users_service.load_all', return_value=mock_user_data)
+    mock_save = mocker.patch('app.services.users_service.save_all')
+    mock_uuid = mocker.patch('app.services.users_service.uuid.uuid4', return_value=uuid.UUID('00000000-0000-0000-0000-00000000000c'))
+    mock_hash = mocker.patch('app.services.users_service.bcrypt_context.hash', return_value="hashed_charlie")
+
+    new_user = create_user(mock_new_user_create)
+
+    assert new_user.userid == '00000000-0000-0000-0000-00000000000c'
+    assert new_user.username == "charlie_fin" 
+    assert new_user.hash_password == "hashed_charlie"
+    
+    mock_load.assert_called_once()
+    mock_uuid.assert_called_once()
+    mock_hash.assert_called_once()
+    
+    mock_save.assert_called_once()
+    saved_data = mock_save.call_args[0][0]
+    assert len(saved_data) == 3
+    assert saved_data[2]['userid'] == new_user.userid
+
+def test_create_user_handles_uuid_collision(mocker, mock_user_data, mock_new_user_create):
+    """Tests that a UUID collision is detected and a new UUID is generated."""
+    mock_user_data[0]['userid'] = '00000000-0000-0000-0000-00000000000c'
+    mocker.patch('app.services.users_service.load_all', return_value=mock_user_data)
+    
+    mock_uuid = mocker.patch('app.services.users_service.uuid.uuid4', side_effect=[
+        uuid.UUID('00000000-0000-0000-0000-00000000000c'), 
+        uuid.UUID('00000000-0000-0000-0000-00000000000d')   
+    ])
+    mocker.patch('app.services.users_service.save_all')
+    mocker.patch('app.services.users_service.bcrypt_context.hash', return_value="hashed_charlie")
+
+    new_user = create_user(mock_new_user_create)
+
+    assert new_user.userid == '00000000-0000-0000-0000-00000000000d'
+    assert mock_uuid.call_count == 2
+
+def test_get_user_by_id_success(mocker, mock_user_data):
+    """Tests successful retrieval of a user by ID."""
+    mocker.patch('app.services.users_service.load_all', return_value=mock_user_data)
+    
+    user = get_user_by_id("user-a")
+    
+    assert isinstance(user, User)
+    assert user.email == "alice@example.com"
+
+def test_get_user_by_id_not_found(mocker, mock_user_data):
+    """Tests retrieval failure for a non-existent ID."""
+    mocker.patch('app.services.users_service.load_all', return_value=mock_user_data)
+    
+    with pytest.raises(HTTPException) as excinfo:
+        get_user_by_id("user-z")
         
-def test_authenticate_user():
-    test = LoginRequest(
-        username_email= "test",
-        password= "123"
-    )
+    assert excinfo.value.status_code == 404
+    assert "User 'user-z' not found" in excinfo.value.detail
+
+def test_get_user_by_email_success(mocker, mock_user_data):
+    """Tests successful retrieval of a user by email (handling the original 'eamil' typo by using 'email')."""
+    mocker.patch('app.services.users_service.load_all', return_value=mock_user_data)
     
-    result = authenticate_user(test)
+    user = get_user_by_email("bob@example.com")
     
-    assert result.username == "hello world"
-    assert result.firstname == "john"
-    assert result.lastname == "doe"
+    assert isinstance(user, User)
+    assert user.userid == "user-b"
+
+def test_get_user_by_email_not_found(mocker, mock_user_data):
+    """Tests retrieval failure for a non-existent email."""
+    mocker.patch('app.services.users_service.load_all', return_value=mock_user_data)
+    
+    with pytest.raises(HTTPException) as excinfo:
+        get_user_by_email("unknown@example.com")
+        
+    assert excinfo.value.status_code == 404
+    assert "Email: 'unknown@example.com' not found" in excinfo.value.detail
+
+def test_get_user_by_username_success(mocker, mock_user_data):
+    """Tests successful retrieval of a user by username."""
+    mocker.patch('app.services.users_service.load_all', return_value=mock_user_data)
+    
+    user = get_user_by_username("alice_hr")
+    
+    assert isinstance(user, User)
+    assert user.email == "alice@example.com"
+
+def test_get_user_by_username_not_found(mocker, mock_user_data):
+    """Tests retrieval failure for a non-existent username."""
+    mocker.patch('app.services.users_service.load_all', return_value=mock_user_data)
+    
+    with pytest.raises(HTTPException) as excinfo:
+        get_user_by_username("ghost_user")
+        
+    assert excinfo.value.status_code == 404
+    assert "User: 'ghost_user' not found" in excinfo.value.detail
+
+@pytest.mark.parametrize("login_input, expected_user_id", [
+    (LoginRequest(username_email="alice@example.com", password="password"), "user-a"),
+    (LoginRequest(username_email="bob_it", password="password"), "user-b"),
+])
+def test_authenticate_user_success(mocker, mock_user_data, login_input, expected_user_id):
+    """Tests successful authentication via email or username."""
+    mocker.patch('app.services.users_service.load_all', return_value=mock_user_data)
+    mock_bcrypt = mocker.patch("app.services.users_service.bcrypt_context")
+    mock_bcrypt.verify.return_value = True
+    
+    user = authenticate_user(login_input)
+    
+    assert user is not None
+    assert user.userid == expected_user_id
+    mock_bcrypt.verify.assert_called_once()
+
+def test_authenticate_user_failure_wrong_password(mocker, mock_user_data):
+    """Tests authentication failure due to incorrect password."""
+    mocker.patch('app.services.users_service.load_all', return_value=mock_user_data)
+    mock_bcrypt = mocker.patch("app.services.users_service.bcrypt_context")
+    mock_bcrypt.verify.return_value = False
+    
+    payload = LoginRequest(username_email="alice@example.com", password="wrong_password")
+    user = authenticate_user(payload)
+    
+    assert user is None
+    mock_bcrypt.verify.assert_called_once()
+
+def test_authenticate_user_failure_not_found(mocker, mock_user_data):
+    """Tests authentication failure for a non-existent user."""
+    mocker.patch('app.services.users_service.load_all', return_value=mock_user_data)
+    mock_bcrypt = mocker.patch("app.services.users_service.bcrypt_context")
+    mock_bcrypt.verify.return_value = None
+    
+    payload = LoginRequest(username_email="ghost@example.com", password="password")
+    user = authenticate_user(payload)
+    
+    assert user is None
+    mock_bcrypt.verify.assert_not_called()
+
+def test_update_user_success(mocker, mock_user_data, mock_user_update_payload):
+    """Tests successful update of an existing user's details."""
+    mock_load = mocker.patch('app.services.users_service.load_all', return_value=mock_user_data)
+    mock_save = mocker.patch('app.services.users_service.save_all')
+    
+    user_id_to_update = "user-a"
+    updated_user = update_user(user_id_to_update, mock_user_update_payload)
+    
+    assert updated_user.userid == user_id_to_update
+    assert updated_user.email == "updated@example.com"
+    assert updated_user.is_admin == "True"
+    
+    mock_load.assert_called_once()
+    mock_save.assert_called_once()
+    
+    saved_data = mock_save.call_args[0][0]
+    updated_record = saved_data[0]
+    assert updated_record['email'] == "updated@example.com"
+
+def test_update_user_not_found(mocker, mock_user_data, mock_user_update_payload):
+    """Tests update failure for a non-existent ID."""
+    mocker.patch('app.services.users_service.load_all', return_value=mock_user_data)
+    mock_save = mocker.patch('app.services.users_service.save_all')
+    
+    with pytest.raises(HTTPException) as excinfo:
+        update_user("user-z", mock_user_update_payload)
+        
+    assert excinfo.value.status_code == 404
+    assert "User 'user-z' not found" in excinfo.value.detail
+    mock_save.assert_not_called()
+
+def test_delete_user_success(mocker, mock_user_data):
+    """Tests successful deletion of an existing user."""
+    mock_load = mocker.patch('app.services.users_service.load_all', return_value=mock_user_data)
+    mock_save = mocker.patch('app.services.users_service.save_all')
+    
+    delete_user("user-a")
+    
+    mock_load.assert_called_once()
+    mock_save.assert_called_once()
+    
+    saved_data = mock_save.call_args[0][0]
+    assert len(saved_data) == 1
+    assert saved_data[0]['userid'] == "user-b"
+
+def test_delete_user_not_found(mocker, mock_user_data):
+    """Tests deletion failure for a non-existent ID."""
+    mocker.patch('app.services.users_service.load_all', return_value=mock_user_data)
+    mock_save = mocker.patch('app.services.users_service.save_all')
+    
+    with pytest.raises(HTTPException) as excinfo:
+        delete_user("user-z")
+        
+    assert excinfo.value.status_code == 404
+    assert "User 'user-z' not found" in excinfo.value.detail
+    mock_save.assert_not_called()
 
 MOCK_WAITLIST_DATA = [
     {'isbn': '978-0321765723', 'userid': 'userA', 'position': 1},

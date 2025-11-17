@@ -1,10 +1,9 @@
 from pathlib import Path
 import csv, os
 from typing import List, Dict, Any
+from app.services import analytics_service
 from app.repositories import books_repo
 # I had imported the books_repo for title lookup
-
-
 
 DATA_PATH = Path(__file__).resolve().parents[1] / "data" / "analytics.csv"
 

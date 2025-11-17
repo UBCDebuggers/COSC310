@@ -14,11 +14,10 @@ def load_all() -> List[Dict[str, Any]]:
 
 def save_all(books: List[Dict[str, Any]]) -> None:
     if not books:
-        # If no items, remove the file or create an empty one with no data rows
         DATA_PATH.unlink(missing_ok=True)
         return
 
-    fieldnames = list(books[0].keys())  # use keys from the first item as column names
+    fieldnames = list(books[0].keys())
     tmp = DATA_PATH.with_suffix(".tmp")
 
     with tmp.open("w", encoding="latin-1", newline="") as f:

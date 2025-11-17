@@ -10,7 +10,7 @@
 # Next.js build output, which MUST NOT be committed
 /fullstack_project/frontend/.next/
 /fullstack_project/frontend/out/
-
+/.vscode/  
 # --------------------
 # 3. ENVIRONMENT/CONFIG (Global)
 # --------------------
@@ -18,3 +18,9 @@
 .env
 .env.local
 .env.*.local
+
+# --------------------
+# 4. PYTHON BUILD ARTIFACTS
+# --------------------
+**/__pycache__/
+*.py[cod]

@@ -7,7 +7,7 @@ passlib
 python-dotenv
 python-jose[cryptography]
 bcrypt==4.0.1
-
+python-dateutil
 
 # Data Processing (Add if needed)
 pandas

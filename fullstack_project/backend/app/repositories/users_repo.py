@@ -27,3 +27,10 @@ def save_all(books: List[Dict[str, Any]]) -> None:
         writer.writerows(books)
     
     os.replace(tmp, DATA_PATH)
+
+def get_user_by_id(userid: str) -> Dict[str, Any]:
+    users = load_all()
+    for user in users:
+        if user.get("userid") == userid:
+            return user
+    return None

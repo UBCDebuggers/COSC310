@@ -1,71 +1,51 @@
-import uuid
-from datetime import datetime
-from typing import List
-from fastapi import HTTPException, status
-from app.schemas.waitlist import WaitList, WaitListCreate
-from app.repositories.waitlists_repo import load_all, save_all
-    
-WAITLISTS = load_all()
+import logging
+from app.repositories import waitlist_repo as wr
+from app.repositories import notification_repo as nr
+from app.services import email_service
 
-def create_waitlist(newWaitList: WaitListCreate) -> WaitList:
-    global WAITLISTS
-    last_position = -1
-    for waitlist in WAITLISTS:
-        if waitlist.get('isbn') != newWaitList.isbn:
-            continue
-        if waitlist.get('userid') == newWaitList.userid:
-            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail= f"Waitlist for '{newWaitList.userid}' already exists")
-        position_found = int(waitlist.get('position'))
-        if position_found > last_position:
-            last_position = position_found
-            
-    new_record = WaitList(isbn= newWaitList.isbn,
-                          userid= newWaitList.userid,
-                          position= last_position + 1)
-    WAITLISTS.append(new_record.model_dump())
-    save_all(WAITLISTS)
-    return new_record
+logger = logging.getLogger(__name__)
 
-def get_waitlists_for_user(userid : str) -> List[WaitList]:
-    global WAITLISTS
-    lists = []
-    for waitlist in WAITLISTS:
-        if waitlist.get('userid') == userid:
-            lists.append(WaitList(**waitlist))
-    if len(lists) == 0:
-        raise HTTPException(status_code=404, detail=f"No waitlists for '{userid}' not found")
-    return lists
+# Notifies all users on the waitlist for a given ISBN; creates notifications and sends emails; returns the count of users notified.
+def notify_waitlist(isbn: str) -> int:
+    try:
+        entries = wr.get_waitlist_for_isbn(isbn)
+        count = 0
 
-def get_waitlists_for_books(isbn : str) -> List[WaitList]:
-    global WAITLISTS
-    lists = []
-    for waitlist in WAITLISTS:
-        if waitlist.get('isbn') == isbn:
-            lists.append(WaitList(**waitlist))
-    if len(lists) == 0:
-        raise HTTPException(status_code=404, detail=f"No waitlists for '{isbn}' not found")
-    return lists
+        for entry in entries:
+            try:
+                user_id = entry.get("userid")
+                email = entry.get("email")
 
-def delete_waitlists_for_user(userid : str) -> None:
-    global WAITLISTS
-    new_waitlists = [waitlist for waitlist in WAITLISTS if waitlist.get('userid') != userid]
-    if len(new_waitlists) == len(WAITLISTS):
-        raise HTTPException(status_code=404, detail=f"Waitlists user {userid} not found")
-    WAITLISTS = new_waitlists
-    save_all(WAITLISTS)
-    
-def delete_waitlists_for_book(isbn : str) -> None:
-    global WAITLISTS
-    new_waitlists = [waitlist for waitlist in WAITLISTS if waitlist.get("isbn") != isbn]
-    if len(new_waitlists) == len(WAITLISTS):
-        raise HTTPException(status_code=404, detail=f"Waitlists for book '{isbn}' not found")
-    WAITLISTS = new_waitlists
-    save_all(WAITLISTS)
-    
-def delete_specific_waitlist(isbn : str, userid :str) -> None:
-    global WAITLISTS
-    new_waitlists = [waitlist for waitlist in WAITLISTS if not (waitlist.get("isbn") == isbn and waitlist.get('userid') == userid)]
-    if len(new_waitlists) == len(WAITLISTS):
-        raise HTTPException(status_code=404, detail=f"Waitlist for book '{isbn}' and user {userid} not found")
-    WAITLISTS = new_waitlists
-    save_all(WAITLISTS)
+                # Create notification in database
+                nr.add_notification(
+                    userid=user_id,
+                    notification_type="waitlist",
+                    category="book_available",
+                    message=f"Book with ISBN {isbn} is now available!",
+                    relatedid=isbn
+                )
+
+                # Send email notification
+                email_service.send_notification_email(
+                    to_email=email,
+                    notification_type="waitlist",
+                    category="book_available",
+                    message=f"The book with ISBN {isbn} is now available for checkout."
+                )
+
+                count += 1
+                logger.info(f"Notified user {user_id} for ISBN {isbn}")
+
+            except Exception as e:
+                logger.error(f"Failed to notify user for ISBN {isbn}: {e}")
+                continue
+
+        # Delete waitlist entries after notifications
+        wr.delete_waitlists_for_book(isbn)
+        logger.info(f"Removed {count} waitlist entries for ISBN {isbn}")
+
+        return count
+
+    except Exception as e:
+        logger.error(f"Error in notify_waitlist for ISBN {isbn}: {e}")
+        return 0

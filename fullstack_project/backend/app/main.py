@@ -4,7 +4,9 @@ from app.routers.auth import router as auth_router
 from app.routers.books import router as books_router
 from app.routers.ratings import router as ratings_router
 from app.routers.users import router as users_router
-from app.routers.watchlist import router as watchlist_router 
+from app.routers.watchlist import router as watchlist_router
+from app.routers.notification import router as notification_router 
+from app.routers.waitlist import router as waitlist_router
 
 app = FastAPI()
 
@@ -25,3 +27,5 @@ app.include_router(books_router)
 app.include_router(ratings_router)
 app.include_router(users_router)
 app.include_router(watchlist_router)
+app.include_router(notification_router)
+app.include_router(waitlist_router)

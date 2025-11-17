@@ -4,7 +4,7 @@ from datetime import datetime
 
 def rebuild_analytics():
     print("🔄 Rebuilding analytics.csv...")
-
+    print("rebuild writing to: " , analytics_repo.DATA_PATH)
     # Load rating summaries (avg + count)
     rating_summary = ratings_service.get_ratings_summary()
     unique_users_map = ratings_service.get_unique_users_by_isbn()
@@ -17,7 +17,7 @@ def rebuild_analytics():
         isbn = book.get("isbn")
 
         # Get metrics if they exist
-        rating_data = rating_summary.get(isbn, {"count": 0, "avg": 0})
+        rating_data = rating_summary.get(isbn, {"count": 0, "avg": 0}) #If the book never received ratings, default values 0 count and 0 avg are used.
         users = unique_users_map.get(isbn, [])
 
         record = {
@@ -31,7 +31,7 @@ def rebuild_analytics():
         }
         records.append(record)
 
-    analytics_repo.save_all(records)
+    analytics_repo.save_all(records)#This overwrites the CSV with fresh analytics.
     print(f"✅ analytics.csv updated with {len(records)} records.")
 
 if __name__ == "__main__":

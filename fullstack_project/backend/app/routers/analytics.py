@@ -8,11 +8,15 @@ router = APIRouter(prefix="/analytics", tags=["analytics"], dependencies=[Depend
 
 #    Fetch all analytics records from analytics.csv
 @router.get("", response_model=List[Dict[str, Any]], status_code=status.HTTP_200_OK)
-def get_all_analytics():
+def get_all_analytics(limit: int = 100): # i limited it to 100 , bcuz the browser (NOT FASTAPI ) was crashing with 27k records , when it read the whole analytics.csv file.
+    if limit < 1:
+        raise HTTPException(status_code=400, detail="limit must be >= 1")
     analytics = analytics_repo.load_all()
+    print("GET reading from:", analytics_repo.DATA_PATH)
     if not analytics:
         raise HTTPException(status_code=404, detail="No analytics data found.")
-    return analytics
+    return analytics[:limit]
+
 
 #   Rebuild the analytics.csv file. Only admins can rebuild analytics since it regenerates all records.
 @router.post("/rebuild", status_code=status.HTTP_200_OK)

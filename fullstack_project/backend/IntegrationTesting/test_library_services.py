@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 from unittest.mock import MagicMock
 from fastapi import HTTPException, status
@@ -126,7 +126,7 @@ class MockReservation:
 
 def test_return_book_success_not_overdue(mock_return_mocks):
     """Test when a user returns a book on time."""
-    expiry = datetime.now() + timedelta(days=1)
+    expiry = datetime.now(timezone.utc) + timedelta(days=1)
     mock_res = MockReservation("u1", "B1", expiry)
 
     mock_return_mocks["get_latest_reservation_by_isbn"].return_value = mock_res
@@ -146,7 +146,7 @@ def test_return_book_success_not_overdue(mock_return_mocks):
 
 def test_return_book_success_overdue(mock_return_mocks):
     """Test when a user returns a book after the due date."""
-    expiry = datetime.now() - timedelta(days=1)
+    expiry = datetime.now(timezone.utc) - timedelta(days=1)
     mock_res = MockReservation("u1", "B1", expiry)
 
     mock_return_mocks["get_latest_reservation_by_isbn"].return_value = mock_res

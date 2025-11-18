@@ -61,7 +61,7 @@ def mock_new_user_create():
     return UserCreate(
         email="charlie@example.com ",
         password="secret_password ",
-        is_admin="False ",
+        is_admin=False,
         department="Finance ",
         age=25,
         username="charlie_fin ",
@@ -75,7 +75,7 @@ def mock_user_update_payload():
     return UserUpdate(
         email="updated@example.com ",
         password="new_password ",
-        is_admin="True ",
+        is_admin=True,
         department="Executive ",
         age=55,
         username="top_brass ",
@@ -247,7 +247,7 @@ def test_update_user_success(mocker, mock_user_data, mock_user_update_payload):
     
     assert updated_user.userid == user_id_to_update
     assert updated_user.email == "updated@example.com"
-    assert updated_user.is_admin == "True"
+    assert updated_user.is_admin
     
     mock_load.assert_called_once()
     mock_save.assert_called_once()

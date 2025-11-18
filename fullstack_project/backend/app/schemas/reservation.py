@@ -16,6 +16,7 @@ class BookReservation(BaseModel):
     status : int = RETURNED
     expiry_date : datetime = Field(default_factory= lambda:
                                     (datetime.now(timezone.utc) + timedelta(days=1)))
+    active : bool = True
     
 class BookReservationCreate(BaseModel):
     userid : str
@@ -23,3 +24,4 @@ class BookReservationCreate(BaseModel):
     status : int = RETURNED
     expiry_date : datetime = Field(default_factory=
                                    (datetime.now(timezone.utc) + timedelta(days=14)))
+    active : bool = True

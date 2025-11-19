@@ -13,7 +13,7 @@ def get_Ratings():
 #simple post the payload (is the body of the request)
 @router.post("", response_model=Rating, status_code=201)
 def post_rating(payload: RatingCreate, token_data : dict = Depends(verify_access_token)):
-    return create_rating(payload, token_data['user'])
+    return create_rating(payload, token_data.get('sub') or token_data.get('username'))
 
 @router.get("/isbn/{isbn}", response_model=List)
 def get_rating_by_isbn(isbn: str):

@@ -1,24 +1,20 @@
 import csv
 import os
 
-def read_csv(path):
-    """
-    Safely read CSV file and return list of dictionaries.
-    Returns [] if file does not exist.
-    """
+# Shared CSV reader with optional delimiter and encoding.
+# Added parameters so books_repo can use ';' + latin-1.
+def read_csv(path, delimiter=",", encoding="utf-8"):
     if not path.exists():
-        return []
+        return []   # If file doesn't exist, mimic repo behavior.
     
-    with path.open("r", encoding="utf-8", newline="") as f:
-        reader = csv.DictReader(f)
+    with path.open("r", encoding=encoding, newline="") as f:
+        reader = csv.DictReader(f, delimiter=delimiter)
         return [row for row in reader]
 
 
-def write_csv(path, rows):
-    """
-    Safely write list of dictionaries to CSV.
-    Uses a temp file + atomic replace for safety.
-    """
+# Shared CSV writer with same flexibility.
+# Still uses temp-file + atomic replace, same as the repos originally did.
+def write_csv(path, rows, delimiter=",", encoding="utf-8"):
     if not rows:
         path.unlink(missing_ok=True)
         return
@@ -26,9 +22,9 @@ def write_csv(path, rows):
     fieldnames = list(rows[0].keys())
     tmp = path.with_suffix(".tmp")
 
-    with tmp.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+    with tmp.open("w", encoding=encoding, newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter=delimiter)
         writer.writeheader()
         writer.writerows(rows)
-    
+
     os.replace(tmp, path)

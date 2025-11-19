@@ -11,6 +11,7 @@ def load_all() -> List[Dict[str, Any]]:
     with DATA_PATH.open("r", encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f)
         return [row for row in reader]
+    
 
 def save_all(ratings: List[Dict[str, Any]]) -> None:
     if not ratings:

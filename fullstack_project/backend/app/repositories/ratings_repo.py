@@ -1,30 +1,16 @@
 from pathlib import Path
-import csv, os
 from typing import List, Dict, Any
+# Using the shared CSV helper functions so this repo doesn't
+# need to manually handle DictReader/DictWriter boilerplate.
+# This keeps the logic more consistent across repos.
+from app.utils.csv_utils import read_csv, write_csv
 
 DATA_PATH = Path(__file__).resolve().parents[1] / "data" / "ratings.csv"
 
+# Delegating the CSV reading to the utility function  so this repo stays focused on ratings-specific behavior.
 def load_all() -> List[Dict[str, Any]]:
-    if not DATA_PATH.exists():
-        return []
-    
-    with DATA_PATH.open("r", encoding="utf-8", newline="") as f:
-        reader = csv.DictReader(f)
-        return [row for row in reader]
-    
+    return read_csv(DATA_PATH)
+
 
 def save_all(ratings: List[Dict[str, Any]]) -> None:
-    if not ratings:
-        # If no items, remove the file or create an empty one with no data rows
-        DATA_PATH.unlink(missing_ok=True)
-        return
-
-    fieldnames = list(ratings[0].keys())  # use keys from the first item as column names
-    tmp = DATA_PATH.with_suffix(".tmp")
-
-    with tmp.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(ratings)
-    
-    os.replace(tmp, DATA_PATH)
+    write_csv(DATA_PATH, ratings)

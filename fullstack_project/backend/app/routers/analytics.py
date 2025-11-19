@@ -17,6 +17,16 @@ def get_all_analytics(limit: int = 100): # i limited it to 100 , bcuz the browse
         raise HTTPException(status_code=404, detail="No analytics data found.")
     return analytics[:limit]
 
+# added limit param to avoid browser crash on large data, also these functions were recently edited in analytics_service.py
+#   Fetch top-rated books based on average rating
+@router.get("/top-rated")
+def top_rated(limit: int = 10):
+    return analytics_service.get_top_rated_books(limit)
+#   Fetch trending books based on a combination of rating count and unique users
+@router.get("/trending")
+def trending(limit: int = 10):
+    return analytics_service.get_trending_books(limit)
+
 
 #   Rebuild the analytics.csv file. Only admins can rebuild analytics since it regenerates all records.
 @router.post("/rebuild", status_code=status.HTTP_200_OK)

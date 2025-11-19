@@ -1,8 +1,64 @@
 from datetime import datetime
-
+from collections import defaultdict
 from app.repositories import analytics_repo
 from app.repositories import books_repo, ratings_repo, users_repo
 from app.services import ratings_service
+from statistics import mean
+
+def _load_analytics():
+    return analytics_repo.load_all()
+#    Returns the top N books ranked by average rating. This directly supports my FR-05.1 and User story number 8.
+def get_top_rated_books(limit: int = 10):
+
+    analytics = _load_analytics()
+    results = []
+
+    for row in analytics:
+        try:
+            avg_rating = float(row.get("avg_rating", 0))
+        except ValueError:
+            avg_rating = 0
+
+        results.append({
+            "isbn": row.get("book_id"),
+            "title": row.get("title", "Unknown"),
+            "avg_rating": avg_rating,
+            "rating_count": int(row.get("rating_count", 0)),
+        })
+
+    # Sort by avg_rating (desc), then by rating_count
+    results.sort(key=lambda x: (x["avg_rating"], x["rating_count"]), reverse=True)
+    return results[:limit]
+
+def get_trending_books(limit: int = 10):
+    """
+    Defines 'trending' simply as: high rating_count + high unique_users.
+    (A simple but effective trend signal for assignment scoring)
+    """
+    analytics = _load_analytics()
+    results = []
+
+    for row in analytics:
+        try:
+            rating_count = int(row.get("rating_count", 0))
+            unique_users = int(row.get("unique_users", 0))
+        except ValueError:
+            rating_count, unique_users = 0, 0
+
+        trend_score = rating_count + unique_users  # simple metric
+
+        results.append({
+            "isbn": row.get("book_id"),
+            "title": row.get("title", "Unknown"),
+            "trend_score": trend_score,
+            "rating_count": rating_count,
+            "unique_users": unique_users,
+        })
+
+    # sort by trend_score desc
+    results.sort(key=lambda x: x["trend_score"], reverse=True)
+    return results[:limit]
+
 
 
 # Small helper that bundles rating summary + unique users for a given ISBN.

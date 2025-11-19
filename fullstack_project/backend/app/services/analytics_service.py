@@ -1,9 +1,8 @@
 from datetime import datetime
 from app.repositories import analytics_repo
-from app.repositories.books_repo import load_all as load_books
-from app.repositories.ratings_repo import load_all as load_ratings
-from app.repositories.users_repo import load_all as load_users
+from app.repositories import books_repo, ratings_repo, users_repo
 from app.services import ratings_service
+
 
 
 def rebuild_analytics():
@@ -11,9 +10,9 @@ def rebuild_analytics():
     print("Writing to:", analytics_repo.DATA_PATH)
 
     # Load all core data
-    books = load_books()
-    ratings = load_ratings()
-    users = load_users()
+    books = books_repo.load_all()
+    ratings = ratings_repo.load_all()
+    users = users_repo.load_all()
 
     # Rating summaries (avg + count)
     rating_summary = ratings_service.get_ratings_summary()
@@ -33,11 +32,12 @@ def rebuild_analytics():
             "date": today,
             "book_id": isbn,
             "title": book.get("title", "Unknown"),
-            "request_count": 0,  # can be updated later if needed
-            "rating_count": r["count"],
-            "rating_avg": r["avg"],
-            "unique_users": len(user_list)
+            "request_count": "0",                      # fixed: string
+            "rating_count": str(r["count"]),           # fixed: ensure string
+            "avg_rating": str(r["avg"]),               # fixed: correct name
+            "unique_users": str(len(user_list))        # fixed: ensure string
         }
+
 
         records.append(record)
 

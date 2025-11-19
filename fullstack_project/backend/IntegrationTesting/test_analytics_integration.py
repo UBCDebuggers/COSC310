@@ -21,13 +21,18 @@ def analytics_paths(tmp_path, monkeypatch):
 
 @pytest.fixture
 def sample_books(monkeypatch):
-    #Fake book list for testing. We patch BOOKS inside books_service
-    #so rebuild_analytics uses these instead of the real books.json.
+
     books = [
         {"isbn": "ISBN-001", "title": "Integration Testing 101"},
         {"isbn": "ISBN-002", "title": "Advanced Integration"},
     ]
-    monkeypatch.setattr(books_service, "BOOKS", books)
+
+    # Patch load_all() inside books_repo so analytics_service uses these fake books
+    monkeypatch.setattr(
+        "app.repositories.books_repo.load_all",
+        lambda: books
+    )
+
     return books
 
 

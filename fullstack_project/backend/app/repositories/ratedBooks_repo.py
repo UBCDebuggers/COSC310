@@ -6,7 +6,7 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 RATED_PATH = DATA_DIR / "ratedBooks.csv"
 HEADERS = ["user_id", "isbn", "score", "created_on"]
 
-# Helper functions to read and write the rated books CSV file
+# Helper functions to read and to write the rated books CSV file
 def _read() -> List[Dict[str, str]]:
     if not RATED_PATH.exists():
         return []

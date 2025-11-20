@@ -34,7 +34,8 @@ from app.services.reservation_service import (
     delete_reservation,
     delete_reservations_for_book,
     delete_reservations_for_user,
-    update_reservation
+    update_reservation,
+    find_outstanding
 )
 from app.schemas.reservation import (
     CANCELLED,
@@ -821,6 +822,45 @@ def test_create_reservation_failure_user_outstanding(mocker, mock_new_reservatio
     assert excinfo.value.status_code == 403
     assert "Please return any outstanding books before attempting to reserve a book for user user-NEW" in excinfo.value.detail
     mock_save.assert_not_called()
+    
+def test_find_outstanding_success(mocker):
+    """Tests success boolean conditions"""
+    mocker.patch(f"{SERVICE_PATH}.load_all", return_value=[
+        {"reservation_id": "r-01", "isbn": "i2", "userid": "user-A", "reservation_date": "2025-10-22T12:00:00", "expiry_date": "2025-10-29T12:00:00", "status": NOT_RETURNED, "active" : "true"},
+        {"reservation_id": "r-02", "isbn": "i2", "userid": "user-A", "reservation_date": "2025-10-22T12:00:00", "expiry_date": "2025-10-29T12:00:00", "status": NOT_RETURNED_OVERDUE, "active" : "true"},
+        {"reservation_id": "r-03", "isbn": "i2", "userid": "user-A", "reservation_date": "2025-10-22T12:00:00", "expiry_date": "2025-10-29T12:00:00", "status": RETURNED, "active" : "true"},
+        {"reservation_id": "r-04", "isbn": "i2", "userid": "user-A", "reservation_date": "2025-10-22T12:00:00", "expiry_date": "2025-10-29T12:00:00", "status": NOT_RETURNED, "active" : "false"},
+        {"reservation_id": "r-05", "isbn": "i2", "userid": "user-A", "reservation_date": "2025-10-22T12:00:00", "expiry_date": "2025-10-29T12:00:00", "status": NOT_RETURNED, "active" : "false"},
+    ])
+    
+    results = find_outstanding()
+    
+    assert len(results) == 2
+    assert any(result.status in [NOT_RETURNED,NOT_RETURNED_OVERDUE] and result.active for result in results)
+    
+def test_find_outstanding_failure_no_books_outstanding(mocker):
+    """Tests failure when no records are outstanding"""
+    mocker.patch(f"{SERVICE_PATH}.load_all", return_value=[
+        {"reservation_id": "r-01", "isbn": "i2", "userid": "user-A", "reservation_date": "2025-10-22T12:00:00", "expiry_date": "2025-10-29T12:00:00", "status": RETURNED, "active" : "false"},
+        {"reservation_id": "r-02", "isbn": "i2", "userid": "user-A", "reservation_date": "2025-10-22T12:00:00", "expiry_date": "2025-10-29T12:00:00", "status": RETURNED, "active" : "false"},
+        {"reservation_id": "r-03", "isbn": "i2", "userid": "user-A", "reservation_date": "2025-10-22T12:00:00", "expiry_date": "2025-10-29T12:00:00", "status": RETURNED, "active" : "false"},
+        {"reservation_id": "r-04", "isbn": "i2", "userid": "user-A", "reservation_date": "2025-10-22T12:00:00", "expiry_date": "2025-10-29T12:00:00", "status": RETURNED, "active" : "false"},
+        {"reservation_id": "r-05", "isbn": "i2", "userid": "user-A", "reservation_date": "2025-10-22T12:00:00", "expiry_date": "2025-10-29T12:00:00", "status": RETURNED, "active" : "false"},
+    ])
+        
+    with pytest.raises(HTTPException) as excinfo:
+        find_outstanding()
+        
+    assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
+    
+def test_find_outstanding_failure_no_books(mocker):
+    """Tests failure when no records exist"""
+    mocker.patch(f"{SERVICE_PATH}.load_all", return_value=[])
+        
+    with pytest.raises(HTTPException) as excinfo:
+        find_outstanding()
+        
+    assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
 
 def test_update_reservation_success(mocker, mock_reservation_data, mock_new_reservation_payload):
     """Tests updating an existing reservation by ID and setting status to CANCELLED."""

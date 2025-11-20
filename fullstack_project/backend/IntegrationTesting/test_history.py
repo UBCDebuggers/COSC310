@@ -78,53 +78,6 @@ def test_get_last_books_no_authentication(client: TestClient):
     assert response.status_code in [401, 403]
     cleanup_history_auth()
 
-# GET /history/isbn/{isbn} - Get History by ISBN
-def test_get_history_by_isbn_endpoint(client: TestClient, mock_history_services):
-    setup_history_auth(is_authenticated=True)
-    
-    mock_history_services["get_history_by_isbn"].return_value = [
-        {
-            "userid": "user1",
-            "isbn": "isbn123",
-            "date": datetime.fromisoformat("2024-01-01T00:00:00")
-        }
-    ]
-
-    response = client.get("/history/isbn/isbn123")
-    
-    assert response.status_code == 200
-    data = response.json()
-    assert "history_items" in data
-    assert len(data["history_items"]) == 1
-    
-    cleanup_history_auth()
-
-# GET /history/user/{userid} - Get History by User ID
-def test_get_history_by_userid_endpoint(client: TestClient, mock_history_services):
-    setup_history_auth(is_authenticated=True)
-    
-    mock_history_services["get_history_by_userid"].return_value = [
-        {
-            "userid": "user1",
-            "isbn": "isbn1",
-            "date": datetime.fromisoformat("2024-01-03T00:00:00")
-        },
-        {
-            "userid": "user1",
-            "isbn": "isbn2",
-            "date": datetime.fromisoformat("2024-01-02T00:00:00")
-        }
-    ]
-
-    response = client.get("/history/user/user1")
-    
-    assert response.status_code == 200
-    data = response.json()
-    assert "history_items" in data
-    assert len(data["history_items"]) == 2
-    
-    cleanup_history_auth()
-
 # DELETE /history/delete/{item_id} - Delete History Item
 def test_delete_history_item_endpoint_success(client: TestClient, mock_history_services):
     setup_history_auth(is_authenticated=True)

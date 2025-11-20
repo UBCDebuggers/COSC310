@@ -1,5 +1,8 @@
 import csv
+from datetime import datetime, timedelta
 import io
+import unittest
+from unittest import mock
 from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 import pytest
@@ -7,8 +10,9 @@ from app.main import app
 from app.services.books_service import search_books
 from app.routers.books import router, verify_access_token
 from app.schemas.filter import Filter
-from fastapi import status
+from fastapi import HTTPException, status
 from app.schemas.book import BookCreate, BookUpdate
+from app.services.library_service import borrow_book
 
 @pytest.fixture
 def client():

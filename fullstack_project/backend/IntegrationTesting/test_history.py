@@ -48,9 +48,9 @@ def test_get_last_books_endpoint_authenticated(client: TestClient, mocker):
     
     assert response.status_code == 200
     data = response.json()
-    assert "history_items" in data
-    assert len(data["history_items"]) == 2
-    assert data["history_items"][0]["isbn"] == "isbn1"
+    assert "items" in data
+    assert len(data["items"]) == 2
+    assert data["items"][0]["isbn"] == "isbn1"
     mock_get_last_books.assert_called_once_with("user1", 10)
 
 # GET /history/user/{userid}/last with custom limit
@@ -62,6 +62,8 @@ def test_get_last_books_with_custom_limit(client: TestClient, mocker):
     response = client.get("/history/user/user1/last?limit=5")
     
     assert response.status_code == 200
+    data = response.json()
+    assert "items" in data
     mock_get_last_books.assert_called_once_with("user1", 5)
 
 # GET /history/user/{userid}/last without authentication

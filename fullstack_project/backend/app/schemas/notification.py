@@ -17,10 +17,3 @@ class NotificationCreate(BaseModel):
     timestamp: datetime
     isread: bool
     category: str
-    
-class NotificationUpdate(BaseModel):
-    type: str
-    message: str
-    timestamp: datetime
-    isread: bool
-    category: str

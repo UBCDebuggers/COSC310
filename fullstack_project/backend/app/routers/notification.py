@@ -3,7 +3,6 @@ from typing import List
 from app.schemas.notification import (
     Notification,
     NotificationCreate,
-    NotificationUpdate,
 )
 from app.repositories import notification_repo, users_repo
 from app.services.email_service import send_notification_email
@@ -104,56 +103,7 @@ def mark_notification_as_read(notificationid: str) -> dict:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating notification: {str(e)}")
 
-# Update a notification.
-@router.put("/{notificationid}")
-def update_notification(notificationid: str, notification_update: NotificationUpdate) -> dict:
-    try:
-        updated = notification_repo.update_notification(
-            notificationid,
-            notification_update.model_dump()
-        )
-        
-        if not updated:
-            raise HTTPException(status_code=404, detail=f"Notification '{notificationid}' not found")
-        
-        return {
-            "status": "success",
-            "message": "Notification updated",
-            "notification": Notification(**updated)
-        }
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating notification: {str(e)}")
-
-# Delete a notification
-@router.delete("/{notificationid}")
-def delete_notification(notificationid: str) -> dict:
-    try:
-        deleted = notification_repo.delete_notification(notificationid)
-        
-        if not deleted:
-            raise HTTPException(status_code=404, detail=f"Notification '{notificationid}' not found")
-        
-        return {
-            "status": "success",
-            "message": "Notification deleted"
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error deleting notification: {str(e)}")
-
-# Delete all read notifications for a user
-@router.delete("/{userid}/read")
-def delete_all_read_notifications(userid: str) -> dict:
-    try:
-        count = notification_repo.delete_read_notifications(userid)
-        
-        return {
-            "status": "success",
-            "message": f"Deleted {count} read notifications",
-            "count": count
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error deleting notifications: {str(e)}")

@@ -11,17 +11,24 @@ from app.services.create_history_item import (
 )
 from app.schemas.history import HistoryItem
 from app.repositories import history_repo
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 # Mock Repository
 @pytest.fixture
 def mock_history_repo(monkeypatch):
-    mock_repo = unittest.TestCase()
-    monkeypatch.setattr(history_repo, "add_history_item", mock_repo.add_history_item)
-    monkeypatch.setattr(history_repo, "load_all", mock_repo.load_all)
-    monkeypatch.setattr(history_repo, "delete_history_item", mock_repo.delete_history_item)
-    return mock_repo
+    class MockRepo:
+        add_history_item = MagicMock()
+        load_all = MagicMock()
+        delete_history_item = MagicMock()
 
+    monkeypatch.setattr(history_repo, "add_history_item", MockRepo.add_history_item)
+    monkeypatch.setattr(history_repo, "load_all", MockRepo.load_all)
+    monkeypatch.setattr(history_repo, "delete_history_item", MockRepo.delete_history_item)
+
+    return MockRepo
+
+
+    
 # Creating a history item with valid inputs
 def test_create_history_success(mock_history_repo):
     mock_history_repo.add_history_item.return_value = {
@@ -66,7 +73,7 @@ def test_get_last_books_sorting(mock_history_repo):
 # Verify limit parameter is respected
 def test_get_last_books_respects_limit(mock_history_repo):
     mock_history_repo.load_all.return_value = [
-        {"userid": "user1", "isbn": f"isbn{i}", "date": datetime.fromisoformat(f"2024-01-0{5-i}T00:00:00")}
+        {"userid": "user1", "isbn": f"isbn{i}", "date": datetime(2024, 1, 6 - i)}
         for i in range(1, 6)
     ]
     result = get_last_books("user1", limit=3)

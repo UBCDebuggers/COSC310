@@ -5,7 +5,7 @@ class User(BaseModel):
     userid : str
     email : str
     hash_password : str
-    is_admin : str
+    is_admin : bool
     department : str
     age : int
     username : str
@@ -15,7 +15,7 @@ class User(BaseModel):
 class UserCreate(BaseModel):
     email : str
     password : str
-    is_admin : str
+    is_admin : bool
     department : str
     age : int
     username : str
@@ -25,7 +25,7 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     email : str
     password : str
-    is_admin : str
+    is_admin : bool
     department : str
     age : int
     username : str

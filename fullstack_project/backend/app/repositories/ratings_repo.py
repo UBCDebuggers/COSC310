@@ -12,18 +12,18 @@ def load_all() -> List[Dict[str, Any]]:
         reader = csv.DictReader(f)
         return [row for row in reader]
 
-def save_all(books: List[Dict[str, Any]]) -> None:
-    if not books:
+def save_all(ratings: List[Dict[str, Any]]) -> None:
+    if not ratings:
         # If no items, remove the file or create an empty one with no data rows
         DATA_PATH.unlink(missing_ok=True)
         return
 
-    fieldnames = list(books[0].keys())  # use keys from the first item as column names
+    fieldnames = list(ratings[0].keys())  # use keys from the first item as column names
     tmp = DATA_PATH.with_suffix(".tmp")
 
     with tmp.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
-        writer.writerows(books)
+        writer.writerows(ratings)
     
     os.replace(tmp, DATA_PATH)

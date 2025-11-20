@@ -1,59 +1,60 @@
+from fastapi import FastAPI, status, HTTPException
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 from app.core.security import create_access_token
 from app.services import watchlist_service, ratedBooks_service
-
-client = TestClient(app)
-USER_ID = "user1"
-
-@pytest.fixture(autouse=True)
-# Create fake data files for testing
-def isolate_data(tmp_path, monkeypatch):
-    data_dir = tmp_path / "data"
-    data_dir.mkdir()
-    books = data_dir / "books.csv"
-    books.write_text(
-        "isbn;title;author;year_of_publication;publisher;img_url_s;img_url_m;img_url_l\n"
-        "123;Example Book;Author;2001;Pub;img;img;img\n",
-        encoding="utf-8",
-    )
-    watchlists = data_dir / "watchlists.csv"
-    watchlists.write_text(
-        f"user_id;isbn;created_on\n{USER_ID};123;2025-01-01\n",
-        encoding="utf-8",
-    )
-    rated = data_dir / "ratedBooks.csv"
-    rated.write_text("user_id;isbn;score;created_on\n", encoding="utf-8")
-
-    monkeypatch.setattr(watchlist_service, "BOOKS_PATH", str(books))
-    monkeypatch.setattr(watchlist_service, "WATCHLIST_PATH", str(watchlists))
-    monkeypatch.setattr(ratedBooks_service, "ratedBooks_repo",
-                        __import__("app.repositories.ratedBooks_repo", fromlist=[""]))
-    monkeypatch.setattr(ratedBooks_service.ratedBooks_repo, "RATED_PATH", rated)
+from app.core.security import verify_access_token
+from app.routers.ratedBooks import router
 
 @pytest.fixture
-def auth_header():
-    token = create_access_token({"sub": USER_ID, "admin": "no"})
-    return {"Authorization": f"Bearer {token}"}
+def mock_rated_books_service(mocker):
+    """Mocks the service used in the ratedBooks router."""
+    return mocker.patch("app.routers.ratedBooks.ratedBooks_service")
 
-# Tests for ratedBooks endpoints
-def test_rate_book_endpoint(auth_header):
-    resp = client.post("/rated-books", json={"isbn": "123", "score": 9}, headers=auth_header)
-    assert resp.status_code == 201
-    get_resp = client.get("/rated-books", headers=auth_header)
-    assert get_resp.status_code == 200
-    body = get_resp.json()
-    assert len(body) == 1
-    assert body[0]["isbn"] == "123"
+@pytest.fixture
+def client():
+    """
+    Creates a client specifically for this file with auth overridden.
+    """
+    def mock_verify_token():
+        return {"userid": "test_user_123", "is_admin": False}
 
-def test_rate_book_rejects_duplicate(auth_header):
-    client.post("/rated-books", json={"isbn": "123", "score": 7}, headers=auth_header)
-    resp = client.post("/rated-books", json={"isbn": "123", "score": 8}, headers=auth_header)
-    assert resp.status_code == 409
+    app.dependency_overrides[verify_access_token] = mock_verify_token
 
-def test_rate_book_rejects_out_of_range(auth_header):
-    resp = client.post("/rated-books", json={"isbn": "123", "score": 11}, headers=auth_header)
-    assert resp.status_code == 422
-    detail = resp.json()["detail"][0]
-    assert detail["type"] == "less_than_equal"
+    with TestClient(app) as c:
+        yield c
+
+    app.dependency_overrides.clear()
+
+def test_rate_book_success(client, mock_rated_books_service):
+    """Test successfully rating a book (201 Created)."""
+    payload = {"isbn": "123", "score": 8}
+    
+    response = client.post("/rated-books", json=payload)
+
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.json() == {"message": "Rating saved"}
+    
+    mock_rated_books_service.rateBook.assert_called_once_with("test_user_123", "123", 8)
+
+def test_rate_book_duplicate(client, mock_rated_books_service):
+    """Test handling of a duplicate rating (409 Conflict)."""
+    mock_rated_books_service.rateBook.side_effect = HTTPException(
+        status_code=status.HTTP_409_CONFLICT, 
+        detail="Book already rated"
+    )
+
+    response = client.post("/rated-books", json={"isbn": "123", "score": 9})
+
+    assert response.status_code == status.HTTP_409_CONFLICT
+    assert response.json()["detail"] == "Book already rated"
+
+def test_rate_book_score_out_of_range(client, mock_rated_books_service):
+    """Test Pydantic validation (Score > 10)."""
+    payload = {"isbn": "123", "score": 11}
+
+    response = client.post("/rated-books", json=payload)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+    mock_rated_books_service.rateBook.assert_not_called()

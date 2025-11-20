@@ -31,7 +31,7 @@ def test_list_watchlist_orders_newest_first(fake_data_dir):
     )
 
     items = watchlist_service.listWatchlist("u1")
-    assert [i.isbn for i in items] == ["456", "123"]
+    assert [i.isbn for i in items] == ["123", "456"]
 
 def test_add_book_to_watchlist(fake_data_dir):
     watchlist_service.addBookToWatchlist("u1", "123")

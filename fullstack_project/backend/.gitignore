@@ -8,3 +8,9 @@ __pycache__/
 
 .pytest_cache/
 htmlcov/
+
+# Coverage files
+.coverage
+htmlcov/
+coverage.xml
+.cache/

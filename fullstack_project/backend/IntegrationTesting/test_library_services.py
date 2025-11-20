@@ -3,7 +3,8 @@ from unittest import mock
 from unittest.mock import MagicMock
 from fastapi import HTTPException, status
 import pytest
-from app.schemas.reservation import RETURNED, RETURNED_OVERDUE
+from app.routers.library import book_return, borrow, get_book_history, get_book_status, get_outstanding_loans, get_user_loans
+from app.schemas.reservation import RETURNED, RETURNED_OVERDUE, NOT_RETURNED
 from app.services.library_service import borrow_book, return_book
 
 
@@ -19,11 +20,8 @@ class MockWaitlistEntry:
     def __init__(self, position):
         self.position = position
 
-# Mocked constants
 BookReservationCreate = mock.MagicMock()
-NOT_RETURNED = "NOT_RETURNED"
 
-# --- PYTEST FIXTURES ---
 @pytest.fixture
 def test_data():
     """Provides reusable test parameters."""
@@ -172,3 +170,208 @@ def test_return_book_wrong_user(mock_return_mocks):
     assert excinfo.value.status_code == status.HTTP_406_NOT_ACCEPTABLE
     mock_return_mocks["update_reservation"].assert_not_called()
     mock_return_mocks["BookReservationCreate"].assert_not_called()
+    
+
+# Service functions to be mocked
+ROUTER_MOCK_PATH = {
+    'update_reservation': 'app.routers.library.update_reservation',
+    'borrow_book': 'app.routers.library.borrow_book',
+    'return_book': 'app.routers.library.return_book',
+    'get_reservations_by_userid': 'app.routers.library.get_reservations_by_userid',
+    'get_latest_reservation_by_isbn': 'app.routers.library.get_latest_reservation_by_isbn',
+    'get_reservations_by_isbn': 'app.routers.library.get_reservations_by_isbn',
+    'find_outstanding': 'app.routers.library.find_outstanding',
+}
+
+class MockReservationPayload:
+    """Mocks the Pydantic model for input."""
+    def __init__(self, isbn, expiry_date):
+        self.isbn = isbn
+        self.expiry_date = expiry_date
+
+class MockReservationObj():
+    """Mocks a database reservation object."""
+    def __init__(self, status, active=True):
+        self.status = status
+        self.active = active
+
+@pytest.fixture
+def router_test_data():
+    """Provides reusable test parameters for routes."""
+    return {
+        "reservation_id": "res123",
+        "userid": "user_A",
+        "admin_user": {"userid": "admin_01", "is_admin": True},
+        "regular_user": {"userid": "user_01", "is_admin": False},
+        "isbn": "978-111",
+        "payload": MockReservationPayload("978-111", datetime.now() + timedelta(days=7))
+    }
+
+@pytest.fixture
+def mock_router_services(mocker):
+    """Mocks the service functions called within the routes."""
+    return {
+        'update_reservation': mocker.patch(ROUTER_MOCK_PATH['update_reservation']),
+        'borrow_book': mocker.patch(ROUTER_MOCK_PATH['borrow_book']),
+        'return_book': mocker.patch(ROUTER_MOCK_PATH['return_book']),
+        'get_reservations_by_userid': mocker.patch(ROUTER_MOCK_PATH['get_reservations_by_userid']),
+        'get_latest_reservation_by_isbn': mocker.patch(ROUTER_MOCK_PATH['get_latest_reservation_by_isbn']),
+        'get_reservations_by_isbn': mocker.patch(ROUTER_MOCK_PATH['get_reservations_by_isbn']),
+        'find_outstanding': mocker.patch(ROUTER_MOCK_PATH['find_outstanding']),
+    }
+    
+@pytest.mark.asyncio
+async def test_borrow_route_as_admin(mock_router_services, router_test_data):
+    """Test borrow route delegates to update_reservation for admins."""
+    mock_router_services['update_reservation'].return_value = {"msg": "updated"}
+    
+    result = await borrow(
+        reservation_id=router_test_data['reservation_id'],
+        payload=router_test_data['payload'],
+        current_user=router_test_data['admin_user']
+    )
+    
+    assert result == {"msg": "updated"}
+    mock_router_services['update_reservation'].assert_called_once_with(
+        router_test_data['reservation_id'], 
+        router_test_data['payload']
+    )
+    mock_router_services['borrow_book'].assert_not_called()
+
+@pytest.mark.asyncio
+async def test_borrow_route_as_regular_user(mock_router_services, router_test_data):
+    """Test borrow route delegates to borrow_book for regular users."""
+    mock_router_services['borrow_book'].return_value = {"msg": "borrowed"}
+    
+    result = await borrow(
+        reservation_id=router_test_data['reservation_id'],
+        payload=router_test_data['payload'],
+        current_user=router_test_data['regular_user']
+    )
+    
+    assert result == {"msg": "borrowed"}
+    mock_router_services['borrow_book'].assert_called_once_with(
+        userid=router_test_data['regular_user']['userid'],
+        isbn=router_test_data['payload'].isbn,
+        due_date=router_test_data['payload'].expiry_date,
+        is_admin=False
+    )
+    mock_router_services['update_reservation'].assert_not_called()
+
+@pytest.mark.asyncio
+async def test_return_route_success_admin(mock_router_services, router_test_data):
+    """Test return route allows admin to process return."""
+    mock_router_services['return_book'].return_value = {"msg": "returned"}
+    
+    result = await book_return(
+        userid=router_test_data['userid'],
+        isbn=router_test_data['isbn'],
+        current_user=router_test_data['admin_user']
+    )
+    
+    assert result == {"msg": "returned"}
+    mock_router_services['return_book'].assert_called_once_with(
+        router_test_data['userid'], 
+        router_test_data['isbn']
+    )
+
+@pytest.mark.asyncio
+async def test_return_route_forbidden_non_admin(mock_router_services, router_test_data):
+    """Test return route raises 403 for non-admin users."""
+    
+    with pytest.raises(HTTPException) as excinfo:
+        await book_return(
+            userid=router_test_data['userid'],
+            isbn=router_test_data['isbn'],
+            current_user=router_test_data['regular_user']
+        )
+    
+    assert excinfo.value.status_code == status.HTTP_403_FORBIDDEN
+    assert "You do not have the privilege" in excinfo.value.detail
+    mock_router_services['return_book'].assert_not_called()
+
+@pytest.mark.asyncio
+async def test_get_user_loans_admin(mock_router_services, router_test_data):
+    """Admin can view loans for any specific user ID provided in arguments."""
+    target_user = "other_user_id"
+    
+    await get_user_loans(
+        userid=target_user,
+        current_user=router_test_data['admin_user']
+    )
+    
+    mock_router_services['get_reservations_by_userid'].assert_called_once_with(target_user)
+
+@pytest.mark.asyncio
+async def test_get_user_loans_regular_user(mock_router_services, router_test_data):
+    """Regular users can only view their own loans, ignoring the userid argument."""
+    arbitrary_user_arg = "someone_else"
+    
+    await get_user_loans(
+        userid=arbitrary_user_arg,
+        current_user=router_test_data['regular_user']
+    )
+    
+    mock_router_services['get_reservations_by_userid'].assert_called_once_with(
+        router_test_data['regular_user']['userid']
+    )
+
+@pytest.mark.asyncio
+async def test_get_book_status_available(mock_router_services, router_test_data):
+    """Returns 'available' if status is RETURNED/CANCELLED or not active."""
+    mock_router_services['get_latest_reservation_by_isbn'].return_value = MockReservationObj(RETURNED)
+    result = await get_book_status(router_test_data['isbn'])
+    assert result == {"status": "available"}
+
+    mock_router_services['get_latest_reservation_by_isbn'].return_value = MockReservationObj("ANY", active=False)
+    result = await get_book_status(router_test_data['isbn'])
+    assert result == {"status": "available"}
+
+@pytest.mark.asyncio
+async def test_get_book_status_unavailable(mock_router_services, router_test_data):
+    """Returns 'unavailable' if status is NOT_RETURNED."""
+    mock_router_services['get_latest_reservation_by_isbn'].return_value = MockReservationObj(NOT_RETURNED)
+    
+    result = await get_book_status(router_test_data['isbn'])
+    
+    assert result == {"status": "unavailable"}
+
+@pytest.mark.asyncio
+async def test_get_book_status_no_content(mock_router_services, router_test_data):
+    """Raises 204 if status is unknown/unhandled."""
+    mock_router_services['get_latest_reservation_by_isbn'].return_value = MockReservationObj("UNKNOWN_STATUS")
+    
+    with pytest.raises(HTTPException) as excinfo:
+        await get_book_status(router_test_data['isbn'])
+    
+    assert excinfo.value.status_code == status.HTTP_204_NO_CONTENT
+
+@pytest.mark.asyncio
+async def test_get_book_history(mock_router_services, router_test_data):
+    """Test simple pass-through for book history."""
+    expected_list = ["res1", "res2"]
+    mock_router_services['get_reservations_by_isbn'].return_value = expected_list
+    
+    result = await get_book_history(router_test_data['isbn'])
+    
+    assert result == expected_list
+    mock_router_services['get_reservations_by_isbn'].assert_called_once_with(router_test_data['isbn'])
+
+@pytest.mark.asyncio
+async def test_get_outstanding_loans_admin(mock_router_services, router_test_data):
+    """Test admin access to outstanding loans."""
+    mock_router_services['find_outstanding'].return_value = []
+    
+    await get_outstanding_loans(current_user=router_test_data['admin_user'])
+    
+    mock_router_services['find_outstanding'].assert_called_once()
+
+@pytest.mark.asyncio
+async def test_get_outstanding_loans_forbidden(mock_router_services, router_test_data):
+    """Test regular user access denied for outstanding loans."""
+    
+    with pytest.raises(HTTPException) as excinfo:
+        await get_outstanding_loans(current_user=router_test_data['regular_user'])
+    
+    assert excinfo.value.status_code == status.HTTP_403_FORBIDDEN
+    mock_router_services['find_outstanding'].assert_not_called()

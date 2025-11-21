@@ -7,6 +7,7 @@ from app.repositories.users_repo import load_all, save_all
 from app.core.security import bcrypt_context
 from deprecated import deprecated
 
+
 #Returns a list of all users on the system
 def list_users() -> List[User]:
     return [User(**attributes) for attributes in load_all()]

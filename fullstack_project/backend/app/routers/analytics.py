@@ -35,3 +35,24 @@ def clear_analytics_data(token_data: dict = Depends(verify_access_token)):
 
     analytics_repo.save_all([])  # overwrites with empty file
     return None
+#   Getter route to get the top N rated books based on rating_count
+@router.get("/top-rated", response_model=List[Dict[str, Any]], status_code=status.HTTP_200_OK)
+def get_top_rated_books_endpoint(n: int = 10):
+    if n < 1:
+        raise HTTPException(status_code=400, detail="n must be >= 1")
+    top_books = analytics_service.get_top_rated_books(n)
+    return top_books
+
+# getter route to get the trending books based on request_count 
+@router.get("/trending", response_model=List[Dict[str, Any]], status_code=status.HTTP_200_OK)
+def api_trending(n: int = 10, token_data: dict = Depends(verify_access_token)):
+    if not token_data["is_admin"]:
+        raise HTTPException(403, "Admin access required")
+    return analytics_service.get_trending_books(n)
+
+# getter route to get genre popularity analytics
+@router.get("/genres")
+def api_genres(token_data: dict = Depends(verify_access_token)):
+    if not token_data["is_admin"]:
+        raise HTTPException(403, "Admin access required")
+    return analytics_service.get_genre_popularity()

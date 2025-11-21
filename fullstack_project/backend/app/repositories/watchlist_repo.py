@@ -1,6 +1,7 @@
 from __future__ import annotations
-import csv, os, tempfile, asyncio, time
-from typing import Dict, List
+import csv, os, tempfile, asyncio
+from datetime import datetime, timezone
+from typing import Any, Dict, List
 
 wlLock = asyncio.Lock()
 
@@ -40,25 +41,35 @@ def getBooksByIsbn() -> Dict[str, Dict[str, str]]:
             byIsbn[r["isbn"]] = r
     return byIsbn
 
-watchlistHeaders = ["user_id", "isbn", "created_at"]
+watchlistHeaders = ["user_id", "isbn", "created_on"]
+
+def normalize_user_id(user: Any) -> str:
+    if isinstance(user, str):
+        return user
+    if isinstance(user, dict):
+        return str(user.get("userid") or user.get("user_id") or user.get("id") or "")
+    return str(user)
 
 def getWatchListIsbns (userId: str) -> List[str]:
+    userId = normalize_user_id(userId)
     rows = readCsv(WATCHLISTS_PATH)
     mine = [r for r in rows if r.get("user_id") == userId]
 
     # used to sort the watchlist by creation date
-    mine.sort(key=lambda r: float(r.get("created_at") or 0.0), reverse=True)
+    mine.sort(key=lambda r: r.get("created_on") or "", reverse=True)
     return [r["isbn"] for r in mine]
 
 async def addToWatchlist(userId: str, isbn: str) -> List[str]:
+    userId = normalize_user_id(userId)
     async with wlLock:
         rows = readCsv(WATCHLISTS_PATH)
         exists = any(r for r in rows if r.get("user_id") == userId and r.get("isbn") == isbn)
         if not exists:
-            rows.append({"user_id": userId, "isbn": isbn, "created_at": str(time.time())})
+            created_on = datetime.now(timezone.utc).date().isoformat()
+            rows.append({"user_id": userId, "isbn": isbn, "created_on": created_on})
             writeCsv(WATCHLISTS_PATH, watchlistHeaders, rows)
 
         # return the updated list for the user
         mine = [r for r in rows if r.get("user_id") == userId]
-        mine.sort(key=lambda r: float(r.get("created_at") or 0.0), reverse=True)
+        mine.sort(key=lambda r: r.get("created_on") or "", reverse=True)
         return [r["isbn"] for r in mine]

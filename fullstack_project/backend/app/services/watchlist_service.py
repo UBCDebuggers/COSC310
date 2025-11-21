@@ -1,20 +1,12 @@
-import csv, os, tempfile
-from datetime import datetime, timezone
+import csv, os, tempfile, time
 from fastapi import HTTPException
-from typing import Any, List, Dict
+from typing import List, Dict
 from app.schemas.watchlist import WatchlistItem
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "../data")
 BOOKS_PATH = os.path.join(DATA_DIR, "books.csv")
 WATCHLIST_PATH = os.path.join(DATA_DIR, "watchlists.csv")
-WATCHLIST_HEADERS = ["user_id", "isbn", "created_on"]
-
-def _normalize_user_id(user: Any) -> str:
-    if isinstance(user, str):
-        return user
-    if isinstance(user, dict):
-        return str(user.get("userid") or user.get("user_id") or user.get("id") or "")
-    return str(user)
+WATCHLIST_HEADERS = ["user_id", "isbn", "created_at"]
 
 def readCsv(path: str) -> List[Dict[str, str]]:
     if not os.path.exists(path):
@@ -39,11 +31,10 @@ def booksByIsbn() -> Dict[str, Dict[str, str]]:
     return {r["isbn"]: r for r in rows if r.get("isbn")}
 
 def listWatchlist(userId: str) -> List[WatchlistItem]:
-    userId = _normalize_user_id(userId)
     books = booksByIsbn()
     rows = readCsv(WATCHLIST_PATH)
     mine = [r for r in rows if r.get("user_id") == userId]
-    mine.sort(key=lambda r: r.get("created_on") or "")
+    mine.sort(key=lambda r: float(r.get("created_at") or 0.0), reverse=True)
     items: List[WatchlistItem] = []
     for r in mine:
         b = books.get(r["isbn"])
@@ -62,7 +53,6 @@ def listWatchlist(userId: str) -> List[WatchlistItem]:
     return items
 
 def addBookToWatchlist(userId: str, isbn: str) -> WatchlistItem:
-    userId = _normalize_user_id(userId)
     books = booksByIsbn()
     book = books.get(isbn)
     if not book:
@@ -71,8 +61,7 @@ def addBookToWatchlist(userId: str, isbn: str) -> WatchlistItem:
     rows = readCsv(WATCHLIST_PATH)
     exists = any(r for r in rows if r.get("user_id") == userId and r.get("isbn") == isbn)
     if not exists:
-        created_on = datetime.now(timezone.utc).date().isoformat()
-        rows.append({"user_id": userId, "isbn": isbn, "created_on": created_on})
+        rows.append({"user_id": userId, "isbn": isbn, "created_at": str(time.time())})
         writeCsv(WATCHLIST_PATH, WATCHLIST_HEADERS, rows)
 
     # return the added item
@@ -88,7 +77,6 @@ def addBookToWatchlist(userId: str, isbn: str) -> WatchlistItem:
     )
 
 def removeBookFromWatchlist(userId: str, isbn: str) -> None:
-    userId = _normalize_user_id(userId)
     rows = readCsv(WATCHLIST_PATH)
     new_rows = [r for r in rows if not (r.get("user_id") == userId and r.get("isbn") == isbn)]
     if len(new_rows) != len(rows):

@@ -11,18 +11,21 @@ from app.services.watchlist_service import (
 
 router = APIRouter(prefix="/watchlist", tags=["watchlist"], dependencies=[Depends(verify_access_token)])
 
-@router.get("", response_model=List[WatchlistItem])
+@router.get("", response_model=List[WatchlistItem], summary= "Get user watchlist")
 def getWatchlist(currUserId: dict = Depends(verify_access_token)):
     
-    return listWatchlist(currUserId.get('userid'))
+    #Return the user's watchlist in order.
+    return listWatchlist(currUserId["userid"])
 
-@router.post("", response_model=WatchlistItem, status_code=201)
+@router.post("", response_model=WatchlistItem, status_code=201, summary="Add book to watchlist")
 def postWatchlistItem(payload: WatchlistAdd, currUserId: dict = Depends(verify_access_token)):
     
-    return addBookToWatchlist(currUserId.get('userid'), payload.isbn)
+    #Add an ISBN to the user's watchlist.
+    return addBookToWatchlist(currUserId["userid"], payload.isbn)
 
-@router.delete("/{isbn}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{isbn}", status_code=status.HTTP_204_NO_CONTENT, summary="Remove book from watchlist")
 def removeWatchlistItem(isbn: str, currUserId: dict = Depends(verify_access_token)):
 
-    removeBookFromWatchlist(currUserId.get('userid'), isbn)
+    #Remove an ISBN from the user's watchlist.
+    removeBookFromWatchlist(currUserId["userid"], isbn)
     return None

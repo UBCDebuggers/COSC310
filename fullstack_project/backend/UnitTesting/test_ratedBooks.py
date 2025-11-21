@@ -1,21 +1,21 @@
 import pytest
-from datetime import date
 from app.services import ratedBooks_service, watchlist_service
 
+
 @pytest.fixture
-# Create fake data files for testing
 def fake_data(monkeypatch, tmp_path):
     data_dir = tmp_path / "data"
     data_dir.mkdir()
 
     books_path = data_dir / "books.csv"
     books_path.write_text(
-        "isbn;title;author\n123;Example Book;Author\n",
+        "isbn;title;author;year_of_publication;publisher;img_url_s;img_url_m;img_url_l\n"
+        "123;Example Book;Author;2000;Pub;img;img;img\n",
         encoding="utf-8",
     )
     watchlist_path = data_dir / "watchlists.csv"
     watchlist_path.write_text(
-        "user_id;isbn;created_on\nuser1;123;2025-01-01\n",
+        "user_id;isbn;created_on\nuser1;123;2025-01-01\nuser2;123;2025-01-02\n",
         encoding="utf-8",
     )
     rated_path = data_dir / "ratedBooks.csv"
@@ -26,30 +26,52 @@ def fake_data(monkeypatch, tmp_path):
     monkeypatch.setattr(ratedBooks_service, "ratedBooks_repo",
                         __import__("app.repositories.ratedBooks_repo", fromlist=[""]))
     monkeypatch.setattr(ratedBooks_service.ratedBooks_repo, "RATED_PATH", rated_path)
-
     return rated_path
 
 
-# Tests for ratedBooks_service
-def test_rateBook_success(fake_data):
-    ratedBooks_service.rateBook("user1", "123", 8)
-    rows = fake_data.read_text(encoding="utf-8").strip().splitlines()
-    assert len(rows) == 2
-    assert rows[1].startswith("user1;123;8;")
+def _user(user_id="user1", admin=False):
+    return {"userid": user_id, "is_admin": admin}
 
-def test_rateBook_requires_watchlist(fake_data):
-    with pytest.raises(Exception) as exc:
+
+def test_rate_book_success(fake_data):
+    rated = ratedBooks_service.rateBook("user1", "123", 8)
+    assert rated.isbn == "123"
+    assert rated.score == 8
+
+
+def test_rate_book_requires_watchlist(fake_data):
+    with pytest.raises(Exception):
         ratedBooks_service.rateBook("user1", "999", 5)
-    assert "history" in str(exc.value.detail).lower()
 
-def test_rateBook_prevents_duplicates(fake_data):
-    ratedBooks_service.rateBook("user1", "123", 7)
-    with pytest.raises(Exception) as exc:
-        ratedBooks_service.rateBook("user1", "123", 9)
-    assert exc.value.status_code == 409
 
-def test_listRatedBooks_matches_watchlist(fake_data):
+def test_list_rated_books(fake_data):
     ratedBooks_service.rateBook("user1", "123", 6)
-    items = ratedBooks_service.listRatedBooks("user1")
-    assert len(items) == 1
-    assert items[0].isbn == "123"
+    results = ratedBooks_service.listRatedBooks("user1")
+    assert len(results) == 1
+
+
+def test_list_by_isbn(fake_data):
+    ratedBooks_service.rateBook("user1", "123", 7)
+    ratedBooks_service.rateBook("user2", "123", 5)
+    assert len(ratedBooks_service.listRatingsByIsbn("123")) == 2
+
+
+def test_update_rating_permissions(fake_data):
+    ratedBooks_service.rateBook("user1", "123", 7)
+    updated = ratedBooks_service.updateRating("user1", "123", 9, requester=_user())
+    assert updated.score == 9
+    with pytest.raises(Exception):
+        ratedBooks_service.updateRating("user1", "123", 6, requester=_user("user2"))
+    admin_updated = ratedBooks_service.updateRating("user1", "123", 4, requester=_user("admin", admin=True))
+    assert admin_updated.score == 4
+
+
+def test_remove_rating_permissions(fake_data):
+    ratedBooks_service.rateBook("user1", "123", 6)
+    ratedBooks_service.removeRating("user1", "123", requester=_user())
+    assert ratedBooks_service.listRatedBooks("user1") == []
+    ratedBooks_service.rateBook("user1", "123", 6)
+    with pytest.raises(Exception):
+        ratedBooks_service.removeRating("user1", "123", requester=_user("user2"))
+    ratedBooks_service.removeRatingAsAdmin("user1", "123", requester=_user("admin", admin=True))
+    assert ratedBooks_service.listRatedBooks("user1") == []

@@ -55,7 +55,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run FastAPI unit tests
-        run: pytest -v UnitTesting/test_main.py
+        run: pytest -v UnitTesting/
 
       - name: Run FastAPI integration tests
-        run: pytest -v IntegrationTesting/test.py
+        run: pytest -v IntegrationTesting/

@@ -54,7 +54,7 @@ def create_reservation(newReservation : BookReservationCreate) -> BookReservatio
     now = datetime.now(timezone.utc)
     try:
         book = get_latest_reservation_by_isbn(newReservation.isbn)
-        if book.status in [NOT_RETURNED, NOT_RETURNED_OVERDUE] or book.expiry_date < now:
+        if book.status in [NOT_RETURNED, NOT_RETURNED_OVERDUE] or (book.expiry_date < now and book.active):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     except HTTPException as e:
         if e.status_code == status.HTTP_403_FORBIDDEN:
@@ -63,7 +63,7 @@ def create_reservation(newReservation : BookReservationCreate) -> BookReservatio
         
     try:
         user = get_latest_reservation_by_userid(newReservation.userid)
-        if user.status in [NOT_RETURNED, NOT_RETURNED_OVERDUE] or user.expiry_date < now:
+        if user.status in [NOT_RETURNED, NOT_RETURNED_OVERDUE] or (user.expiry_date < now and user.active):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     except HTTPException as e:
         if e.status_code == status.HTTP_403_FORBIDDEN:
@@ -77,6 +77,21 @@ def create_reservation(newReservation : BookReservationCreate) -> BookReservatio
     save_all(reservations)
     return new_record
 
+#Returns all outstanding reservations
+def find_outstanding() -> List[BookReservation]:
+    reservations = load_all()
+    out = []
+    for reservation in reservations:
+        record = BookReservation(**reservation)
+        if record.status in [NOT_RETURNED, NOT_RETURNED_OVERDUE] and record.active:
+            out.append(record)
+    
+    if len(out) == 0:
+        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= "No outstanding records found")
+    
+    return out
+            
+
 #Updates a book reservation
 def update_reservation(reservation_id : str, update : BookReservationCreate) -> BookReservation:
     reservations = load_all()
@@ -87,7 +102,8 @@ def update_reservation(reservation_id : str, update : BookReservationCreate) -> 
                                                   reservation_date= reservation.get('reservation_date'),
                                                   expiry_date= update.expiry_date,
                                                   status= update.status,
-                                                  reservation_id= reservation.get('reservation_id')
+                                                  reservation_id= reservation.get('reservation_id'),
+                                                  active= update.active
                                                   )
             reservations[idx] = updated_reservation.model_dump()
             save_all(reservations)

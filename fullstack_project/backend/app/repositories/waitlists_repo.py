@@ -18,7 +18,7 @@ def save_all(waitlists: List[Dict[str, Any]]) -> None:
         DATA_PATH.unlink(missing_ok=True)
         return
 
-    fieldnames = list(waitlists[0].keys())  # use keys from the first item as column names
+    fieldnames = list(waitlists[0].keys())  # use keys from the first item as the column names
     tmp = DATA_PATH.with_suffix(".tmp")
 
     with tmp.open("w", encoding="latin-1", newline="") as f:

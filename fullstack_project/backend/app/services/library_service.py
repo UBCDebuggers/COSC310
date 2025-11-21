@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from app.schemas.reservation import RETURNED, RETURNED_OVERDUE, BookReservationCreate, NOT_RETURNED
 from app.schemas.waitlist import WaitListCreate
 from app.services.reservation_service import create_reservation, update_reservation, get_latest_reservation_by_isbn
@@ -48,10 +48,11 @@ def return_book(userid : str, isbn : str) -> dict:
     reservation = get_latest_reservation_by_isbn(isbn)
     if reservation.userid != userid:
         raise HTTPException(status_code= status.HTTP_406_NOT_ACCEPTABLE, detail= f"User {userid} has not reserved book {isbn}")
-    is_overdue = reservation.expiry_date < datetime.now()
+    is_overdue = reservation.expiry_date < datetime.now(timezone.utc)
     new_record = BookReservationCreate(isbn= reservation.isbn,
                                         userid= reservation.userid,
-                                       expiry_date= reservation.expiry_date,
-                                       status= RETURNED_OVERDUE if is_overdue else RETURNED)
+                                        expiry_date= reservation.expiry_date,
+                                        status= RETURNED_OVERDUE if is_overdue else RETURNED,
+                                        active= False)
     update_reservation(reservation.reservation_id, new_record)
     return {"message": "Book successfully returned!"}

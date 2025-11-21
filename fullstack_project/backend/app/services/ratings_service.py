@@ -100,3 +100,18 @@ def get_unique_users_by_isbn() -> dict:
             user_map[isbn].add(user_id)
 
     return {isbn: list(users) for isbn, users in user_map.items()}
+
+# Sort books by rating_count (descending). Return top N.
+def get_top_rated_books(n: int) -> List[dict]:
+    rating_summary = get_ratings_summary()
+    sorted_books = sorted(rating_summary.items(), key=lambda x: x[1]['count'], reverse=True)
+    top_books = sorted_books[:n]
+    
+    result = []
+    for isbn, data in top_books:
+        result.append({
+            "isbn": isbn,
+            "rating_count": data['count'],
+            "avg_rating": data['avg']
+        })
+    return result

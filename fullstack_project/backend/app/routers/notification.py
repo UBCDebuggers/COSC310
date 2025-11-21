@@ -44,12 +44,10 @@ def create_notification_with_email(
     send_email: bool = True
 ) -> dict:
     try:
-        # Validate user exists
         user = users_repo.get_user(userid)
         if not user:
             raise HTTPException(status_code=404, detail=f"User '{userid}' not found")
-
-        # Create notification record
+        
         notification = notification_service.add_notification(
             userid=userid,
             notification_type=notification_type,
@@ -58,7 +56,6 @@ def create_notification_with_email(
             relatedid=relatedid
         )
 
-        # Queue email in background if enabled
         if send_email and user.get("email"):
             background_tasks.add_task(
                 send_notification_email,
@@ -85,7 +82,7 @@ def mark_notification_as_read(notificationid: str) -> dict:
     try:
         updated = notification_service.update_notification(
             notificationid,
-            {"isread": "true"}  # CSV uses string "true"/"false"
+            {"isread": "true"}
         )
 
         if not updated:

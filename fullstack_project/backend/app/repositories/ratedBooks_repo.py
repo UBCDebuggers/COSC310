@@ -35,3 +35,27 @@ def append(row: Dict[str, str]) -> None:
 
 def list_for_user(user_id: str) -> List[Dict[str, str]]:
     return [r for r in _read() if r["user_id"] == user_id]
+
+def list_for_isbn(isbn: str) -> List[Dict[str, str]]:
+    return [r for r in _read() if r["isbn"] == isbn]
+
+def update_score(user_id: str, isbn: str, score: str, created_on: str) -> Optional[Dict[str, str]]:
+    rows = _read()
+    updated = None
+    for row in rows:
+        if row["user_id"] == user_id and row["isbn"] == isbn:
+            row["score"] = score
+            row["created_on"] = created_on
+            updated = row
+            break
+    if updated:
+        _write(rows)
+    return updated
+
+def remove(user_id: str, isbn: str) -> bool:
+    rows = _read()
+    new_rows = [r for r in rows if not (r["user_id"] == user_id and r["isbn"] == isbn)]
+    if len(new_rows) == len(rows):
+        return False
+    _write(new_rows)
+    return True

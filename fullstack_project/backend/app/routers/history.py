@@ -10,21 +10,21 @@ router = APIRouter(prefix="/history", tags=["history"])
             responses={404: {"model": ErrorResponse}})
 def get_last_history_items(userid: str, limit: int = 10, token_data : dict = Depends(verify_access_token)):
     items = get_last_books(userid, limit)
-    return HistoryListResponse(message="Last history items fetched successfully", history_items=items)
+    return HistoryListResponse(items=items)
 
 # Get history by ISBN
 @router.get("/isbn/{isbn}", response_model=HistoryListResponse,
             responses={404: {"model": ErrorResponse}})
 def get_history_items_by_isbn(isbn: str, token_data : dict = Depends(verify_access_token)):
     items = get_history_by_isbn(isbn)
-    return HistoryListResponse(message="History items fetched successfully", history_items=items)
+    return HistoryListResponse(items=items)
 
 # Get all history by User ID
 @router.get("/user/{userid}", response_model=HistoryListResponse,
             responses={404: {"model": ErrorResponse}})
 def get_history_items_by_userid(userid: str, token_data : dict = Depends(verify_access_token)):
     items = get_history_by_userid(userid)
-    return HistoryListResponse(message="History items fetched successfully", history_items=items)
+    return HistoryListResponse(items=items)
 
 # Delete a specific history item
 @router.delete("/delete/{item_id}", status_code=status.HTTP_204_NO_CONTENT,

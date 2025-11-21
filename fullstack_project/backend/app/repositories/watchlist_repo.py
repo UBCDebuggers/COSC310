@@ -55,8 +55,8 @@ def getWatchListIsbns (userId: str) -> List[str]:
     rows = readCsv(WATCHLISTS_PATH)
     mine = [r for r in rows if r.get("user_id") == userId]
 
-    # used to sort the watchlist by creation date
-    mine.sort(key=lambda r: r.get("created_on") or "", reverse=True)
+    # used to sort the watchlist by creation date (oldest first)
+    mine.sort(key=lambda r: r.get("created_on") or "")
     return [r["isbn"] for r in mine]
 
 async def addToWatchlist(userId: str, isbn: str) -> List[str]:
@@ -71,5 +71,5 @@ async def addToWatchlist(userId: str, isbn: str) -> List[str]:
 
         # return the updated list for the user
         mine = [r for r in rows if r.get("user_id") == userId]
-        mine.sort(key=lambda r: r.get("created_on") or "", reverse=True)
+        mine.sort(key=lambda r: r.get("created_on") or "")
         return [r["isbn"] for r in mine]

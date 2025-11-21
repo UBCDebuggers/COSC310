@@ -43,7 +43,7 @@ def listWatchlist(userId: str) -> List[WatchlistItem]:
     books = booksByIsbn()
     rows = readCsv(WATCHLIST_PATH)
     mine = [r for r in rows if r.get("user_id") == userId]
-    mine.sort(key=lambda r: r.get("created_on") or "", reverse=True)
+    mine.sort(key=lambda r: r.get("created_on") or "")
     items: List[WatchlistItem] = []
     for r in mine:
         b = books.get(r["isbn"])

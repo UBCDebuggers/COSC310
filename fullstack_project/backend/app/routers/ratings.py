@@ -4,6 +4,7 @@ from app.core.security import verify_access_token
 from app.schemas.rating import Rating, RatingCreate, RatingUpdate
 from app.services.ratings_service import (
     get_rating_by_isbn,
+    get_rating_by_id,
     list_ratings,
     create_rating,
     delete_rating,

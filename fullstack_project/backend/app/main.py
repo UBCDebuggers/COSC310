@@ -6,7 +6,6 @@ from app.routers.ratings import router as ratings_router
 from app.routers.users import router as users_router
 from app.routers.watchlist import router as watchlist_router
 from app.routers.history import router as history_router
-from app.routers.ratedBooks import router as ratedBooks_router
 from app.routers.library import router as library_router
 from app.routers.analytics import router as analytics_router
 app = FastAPI()
@@ -29,6 +28,5 @@ app.include_router(ratings_router)
 app.include_router(users_router)
 app.include_router(watchlist_router)
 app.include_router(history_router)
-app.include_router(ratedBooks_router)
 app.include_router(library_router)
 app.include_router(analytics_router)

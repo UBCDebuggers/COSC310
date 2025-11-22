@@ -1,10 +1,8 @@
 from datetime import datetime
-from app.repositories import analytics_repo
-from app.repositories import books_repo, ratings_repo, users_repo
-from app.services import ratings_service
 from typing import List
-from app.services.ratings_service import get_ratings_summary, get_unique_users_by_isbn
 
+from app.repositories import analytics_repo, books_repo, ratings_repo, users_repo
+from app.services.ratings_service import get_ratings_summary, get_unique_users_by_isbn
 
 #Refactor method for rebuild_analytics : Loads all foundational datasets required for analytics.
 def load_foundational_data():
@@ -133,7 +131,7 @@ def _aggregate_genre_counts(records, isbn_to_genres) -> dict:
         isbn = record["book_id"]
         rating_count = int(record["rating_count"])
         genres = isbn_to_genres.get(isbn, [])
-        
+
         for genre in genres:
             if genre not in genre_counts:
                 genre_counts[genre] = 0
@@ -150,6 +148,5 @@ def get_genre_popularity() -> List[dict]:
 
     genre_list = [{"genre": genre, "total_rating_count": count} for genre, count in genre_counts.items()]
     genre_list.sort(key=lambda x: x["total_rating_count"], reverse=True)
-    
-    return genre_list
 
+    return genre_list

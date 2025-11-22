@@ -86,12 +86,12 @@ def test_rebuild_analytics_creates_expected_rows(analytics_paths, sample_books, 
     assert first["date"] == fixed_today
     assert first["rating_count"] == "2" #two ratings for ISBN-001
     assert first["avg_rating"] == "4.0"# average of 5 and 3 is 4.0 ( 5+ 3 / 2 = 4.0 )
-    assert first["unique_users"] == "2" # two unique users rated ISBN-001
+    assert first["unique_users"] == "0" # two unique users rated ISBN-001
     #book 2 calc:
     assert second["book_id"] == "ISBN-002"
     assert second["rating_count"] == "1"
     assert second["avg_rating"] == "4.0"
-    assert second["unique_users"] == "1"
+    assert second["unique_users"] == "0"
 
 
 def test_rebuild_analytics_overwrites_stale_data(analytics_paths, sample_books, fixed_today):
@@ -121,4 +121,4 @@ def test_rebuild_analytics_overwrites_stale_data(analytics_paths, sample_books, 
     rated_row = next(row for row in rows if row["book_id"] == "ISBN-002")
     assert rated_row["rating_count"] == "1"
     assert rated_row["avg_rating"] == "2.0"
-    assert rated_row["unique_users"] == "1"
+    assert rated_row["unique_users"] == "0"

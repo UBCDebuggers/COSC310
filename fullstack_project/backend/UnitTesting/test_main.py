@@ -18,7 +18,6 @@ from app.services.waitlist_service import (create_waitlist,
                                            delete_waitlists_for_user, 
                                            delete_waitlists_for_book, update_waitlists
 )
-from app.schemas.requests import Request, RequestCreate
 from app.schemas.waitlist import WaitList, WaitListCreate
 from fastapi import HTTPException
 from datetime import datetime

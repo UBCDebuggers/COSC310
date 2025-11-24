@@ -27,7 +27,7 @@ async def user_login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 @router.post('/signup', status_code=status.HTTP_201_CREATED)
 async def user_signup(payload: UserCreate):
-    user = create_user(UserCreate(**payload))
+    user = create_user(payload)
     if not user:
         raise HTTPException(status_code=status.WS_1011_INTERNAL_ERROR, detail="Something went wrong while creating your profile please try again")
     

@@ -1,8 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from typing import List
 from app.schemas.notification import Notification
-from app.repositories import users_repo
-from app.services import notification_service
+from app.services import notification_service, users_service
 from app.services.email_service import send_notification_email
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
@@ -23,7 +22,7 @@ def get_user_notifications(userid: str) -> List[dict]:
 def get_unread_notifications(userid: str) -> dict:
     try:
         notifications = notification_service.get_notifications_by_userid(userid)
-        unread = [n for n in notifications if not n.get("isread")]
+        unread = [n for n in notifications if n.get("isread") == "false"]
 
         return {
             "notifications": [Notification(**notif) for notif in unread],
@@ -44,8 +43,9 @@ def create_notification_with_email(
     send_email: bool = True
 ) -> dict:
     try:
-        user = users_repo.get_user(userid)
-        if not user:
+        try:
+            user = users_service.get_user_by_id(userid)
+        except:
             raise HTTPException(status_code=404, detail=f"User '{userid}' not found")
         
         notification = notification_service.add_notification(
@@ -56,10 +56,10 @@ def create_notification_with_email(
             relatedid=relatedid
         )
 
-        if send_email and user.get("email"):
+        if send_email and user.email:
             background_tasks.add_task(
                 send_notification_email,
-                to_email=user["email"],
+                to_email=user.email,
                 notification_type=notification_type,
                 category=category,
                 message=message

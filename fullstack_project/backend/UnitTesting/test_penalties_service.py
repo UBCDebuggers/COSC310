@@ -225,6 +225,58 @@ class TestPenaltyService(unittest.TestCase):
 
         self.assertEqual(context.exception.status_code, 404)
         mock_save.assert_not_called()
+        
+    @patch('app.services.penalties_service.save_all')
+    @patch('app.services.penalties_service.load_all')
+    def test_reactivate_penalty_success(self, mock_load, mock_save):
+        """Penalty is inactive → should reactivate successfully."""
+        inactive_record = self.existing_record.copy()
+        inactive_record["active"] = False
+        mock_load.return_value = [inactive_record]
+
+        from app.services.penalties_service import reactivate_penalty
+        result = reactivate_penalty("p1")
+
+        self.assertTrue(result.active)
+
+        saved_list = mock_save.call_args[0][0]
+        self.assertTrue(saved_list[0]["active"])
+
+        self.assertEqual(saved_list[0]["penalty_id"], "p1")
+        self.assertEqual(saved_list[0]["userid"], "user123")
+
+
+    @patch('app.services.penalties_service.save_all')
+    @patch('app.services.penalties_service.load_all')
+    def test_reactivate_penalty_already_active(self, mock_load, mock_save):
+        """Penalty is already active → should raise 400."""
+        active_record = self.existing_record.copy()
+        active_record["active"] = True
+        mock_load.return_value = [active_record]
+
+        from app.services.penalties_service import reactivate_penalty
+        with self.assertRaises(HTTPException) as context:
+            reactivate_penalty("p1")
+
+        self.assertEqual(context.exception.status_code, 400)
+        self.assertIn("is not active", context.exception.detail)
+        mock_save.assert_not_called()
+
+
+    @patch('app.services.penalties_service.save_all')
+    @patch('app.services.penalties_service.load_all')
+    def test_reactivate_penalty_not_found(self, mock_load, mock_save):
+        """Penalty ID does not exist → should raise 404."""
+        other = self.existing_record.copy()
+        other["penalty_id"] = "different"
+        mock_load.return_value = [other]
+
+        from app.services.penalties_service import reactivate_penalty
+        with self.assertRaises(HTTPException) as context:
+            reactivate_penalty("p1")
+
+        self.assertEqual(context.exception.status_code, 404)
+        mock_save.assert_not_called()
 
 
 if __name__ == '__main__':

@@ -6,6 +6,17 @@ import pytest
 from app.routers.library import book_return, borrow, get_book_history, get_book_status, get_outstanding_loans, get_user_loans
 from app.schemas.reservation import RETURNED, RETURNED_OVERDUE, NOT_RETURNED
 from app.services.library_service import borrow_book, return_book
+from app.routers.library import (
+    penalise_user,
+    get_user_penalties,
+    get_active_penalties,
+    get_penalty_by_id,
+    delete_penalty_by_id,
+    delete_user_penalties,
+    deactivate_restrictions,
+    reactivate_restrictions,
+    update_restrictions,
+)
 
 
 MOCK_PATH = {
@@ -29,6 +40,21 @@ def test_data():
         "user_id": "user123",
         "isbn": "978-0321765723",
         "due_date": datetime.now() + timedelta(days=14)
+    }
+    
+@pytest.fixture
+def admin_user():
+    return {"userid": "admin1", "is_admin": True}
+
+@pytest.fixture
+def regular_user():
+    return {"userid": "user1", "is_admin": False}
+
+@pytest.fixture
+def mock_router_services(mocker):
+    return {
+        name: mocker.patch(path)
+        for name, path in ROUTER_MOCK_PATH.items()
     }
 
 @pytest.fixture
@@ -181,6 +207,15 @@ ROUTER_MOCK_PATH = {
     'get_latest_reservation_by_isbn': 'app.routers.library.get_latest_reservation_by_isbn',
     'get_reservations_by_isbn': 'app.routers.library.get_reservations_by_isbn',
     'find_outstanding': 'app.routers.library.find_outstanding',
+    "create_penalty": "app.routers.library.create_penalty",
+    "get_penalties_for_user": "app.routers.library.get_penalties_for_user",
+    "get_penalties": "app.routers.library.get_penalties",
+    "get_penalty": "app.routers.library.get_penalty",
+    "delete_penalty": "app.routers.library.delete_penalty",
+    "delete_penalties_for_user": "app.routers.library.delete_penalties_for_user",
+    "deactivate_penalty": "app.routers.library.deactivate_penalty",
+    "reactivate_penalty": "app.routers.library.reactivate_penalty",
+    "update_penalty": "app.routers.library.update_penalty",
 }
 
 class MockReservationPayload:
@@ -218,6 +253,15 @@ def mock_router_services(mocker):
         'get_latest_reservation_by_isbn': mocker.patch(ROUTER_MOCK_PATH['get_latest_reservation_by_isbn']),
         'get_reservations_by_isbn': mocker.patch(ROUTER_MOCK_PATH['get_reservations_by_isbn']),
         'find_outstanding': mocker.patch(ROUTER_MOCK_PATH['find_outstanding']),
+        "create_penalty": mocker.patch(ROUTER_MOCK_PATH['create_penalty']),
+        "get_penalties_for_user": mocker.patch(ROUTER_MOCK_PATH['get_penalties_for_user']),
+        "get_penalties": mocker.patch(ROUTER_MOCK_PATH['get_penalties']),
+        "get_penalty": mocker.patch(ROUTER_MOCK_PATH['get_penalty']),
+        "delete_penalty": mocker.patch(ROUTER_MOCK_PATH['delete_penalty']),
+        "delete_penalties_for_user": mocker.patch(ROUTER_MOCK_PATH['delete_penalties_for_user']),
+        "deactivate_penalty": mocker.patch(ROUTER_MOCK_PATH['deactivate_penalty']),
+        "reactivate_penalty": mocker.patch(ROUTER_MOCK_PATH['reactivate_penalty']),
+        "update_penalty": mocker.patch(ROUTER_MOCK_PATH['update_penalty']),    
     }
     
 @pytest.mark.asyncio
@@ -375,3 +419,141 @@ async def test_get_outstanding_loans_forbidden(mock_router_services, router_test
     
     assert excinfo.value.status_code == status.HTTP_403_FORBIDDEN
     mock_router_services['find_outstanding'].assert_not_called()
+    
+@pytest.mark.asyncio
+async def test_create_penalty_admin(mock_router_services, admin_user):
+    mock_router_services["create_penalty"].return_value = {"msg": "ok"}
+
+    result = await penalise_user(payload={"userid": "u1"}, current_user=admin_user)
+
+    assert result == {"msg": "ok"}
+    mock_router_services["create_penalty"].assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_create_penalty_forbidden(regular_user):
+    with pytest.raises(HTTPException) as excinfo:
+        await penalise_user(payload={"userid": "u1"}, current_user=regular_user)
+
+    assert excinfo.value.status_code == status.HTTP_403_FORBIDDEN
+    
+@pytest.mark.asyncio
+async def test_get_user_penalties_admin(mock_router_services, admin_user):
+    mock_router_services["get_penalties_for_user"].return_value = ["p1"]
+
+    result = await get_user_penalties("u1", current_user=admin_user)
+
+    assert result == ["p1"]
+    mock_router_services["get_penalties_for_user"].assert_called_once_with("u1")
+
+
+@pytest.mark.asyncio
+async def test_get_user_penalties_forbidden(regular_user):
+    with pytest.raises(HTTPException):
+        await get_user_penalties("u1", current_user=regular_user)
+
+
+@pytest.mark.asyncio
+async def test_get_active_penalties_admin(mock_router_services, admin_user):
+    mock_router_services["get_penalties"].return_value = ["a"]
+
+    result = await get_active_penalties(
+        userid="abc",
+        current_user=admin_user
+    )
+
+    assert result == ["a"]
+    mock_router_services["get_penalties"].assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_get_active_penalties_forbidden(regular_user):
+    with pytest.raises(HTTPException):
+        await get_active_penalties(userid="abc", current_user=regular_user)
+
+
+@pytest.mark.asyncio
+async def test_get_penalty_by_id_admin(mock_router_services, admin_user):
+    mock_router_services["get_penalty"].return_value = {"id": "p1"}
+
+    result = await get_penalty_by_id("p1", current_user=admin_user)
+
+    assert result == {"id": "p1"}
+    mock_router_services["get_penalty"].assert_called_once_with("p1")
+
+
+@pytest.mark.asyncio
+async def test_get_penalty_by_id_forbidden(regular_user):
+    with pytest.raises(HTTPException):
+        await get_penalty_by_id("p1", current_user=regular_user)
+
+@pytest.mark.asyncio
+async def test_delete_penalty_admin(mock_router_services, admin_user):
+    result = await delete_penalty_by_id("p1", current_user=admin_user)
+
+    assert result == mock_router_services["delete_penalty"].return_value
+    mock_router_services["delete_penalty"].assert_called_once_with("p1")
+
+
+@pytest.mark.asyncio
+async def test_delete_penalty_forbidden(regular_user):
+    with pytest.raises(HTTPException):
+        await delete_penalty_by_id("p1", current_user=regular_user)
+
+@pytest.mark.asyncio
+async def test_delete_user_penalties_admin(mock_router_services, admin_user):
+    result = await delete_user_penalties("u1", current_user=admin_user)
+
+    assert result == mock_router_services["delete_penalties_for_user"].return_value    
+    mock_router_services["delete_penalties_for_user"].assert_called_once_with("u1")
+
+
+@pytest.mark.asyncio
+async def test_delete_user_penalties_forbidden(regular_user):
+    with pytest.raises(HTTPException):
+        await delete_user_penalties("u1", current_user=regular_user)
+
+@pytest.mark.asyncio
+async def test_deactivate_penalty_admin(mock_router_services, admin_user):
+    mock_router_services["deactivate_penalty"].return_value = {"active": False}
+
+    result = await deactivate_restrictions("p1", current_user=admin_user)
+
+    assert result == {"active": False}
+    mock_router_services["deactivate_penalty"].assert_called_once_with("p1")
+
+
+@pytest.mark.asyncio
+async def test_deactivate_penalty_forbidden(regular_user):
+    with pytest.raises(HTTPException):
+        await deactivate_restrictions("p1", current_user=regular_user)
+        
+@pytest.mark.asyncio
+async def test_reactivate_penalty_admin(mock_router_services, admin_user):
+    mock_router_services["reactivate_penalty"].return_value = {"active": True}
+
+    result = await reactivate_restrictions("p1", current_user=admin_user)
+
+    assert result == {"active": True}
+    mock_router_services["reactivate_penalty"].assert_called_once_with("p1")
+
+
+@pytest.mark.asyncio
+async def test_reactivate_penalty_forbidden(regular_user):
+    with pytest.raises(HTTPException):
+        await reactivate_restrictions("p1", current_user=regular_user)
+
+@pytest.mark.asyncio
+async def test_update_penalty_admin(mock_router_services, admin_user):
+    mock_router_services["update_penalty"].return_value = {"updated": True}
+
+    result = await update_restrictions("p1", current_user=admin_user)
+
+    assert result == {"updated": True}
+    mock_router_services["update_penalty"].assert_called_once_with("p1")
+
+
+@pytest.mark.asyncio
+async def test_update_penalty_forbidden(regular_user):
+    with pytest.raises(HTTPException):
+        await update_restrictions("p1", current_user=regular_user)

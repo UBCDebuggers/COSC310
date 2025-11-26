@@ -42,7 +42,7 @@ def get_penalty(penalty_id : str) -> Penalty:
         raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= f"No penalty {penalty_id} found")
     return found
 
-#gets all penalties on the system
+#gets all active penalties on the system
 def get_penalties() -> List[Penalty]:
     penalties = load_all()
     out = [Penalty(**penalty) for penalty in penalties]
@@ -99,6 +99,27 @@ def deactivate_penalty(penalty_id : str) -> Penalty:
                          timestamp= update.timestamp,
                          expiry_date= update.expiry_date,
                          active= False)
+            penalties[idx] = new_record.model_dump()
+            save_all(penalties)
+            return new_record
+    
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail= f"Penalty {penalty_id} not found")
+
+#reactivates user
+def reactivate_penalty(penalty_id : str) -> Penalty:
+    penalties = load_all()
+    for idx, penalty in enumerate(penalties):
+        if penalty.get('penalty_id') == penalty_id:
+            update = Penalty(**penalty)
+            if update.active:
+                raise HTTPException(status_code= status.HTTP_400_BAD_REQUEST, detail= f"Penalty {penalty_id} is not active")
+            new_record = Penalty(penalty_id= update.penalty_id,
+                         userid = update.userid,
+                         penalty_type= update.penalty_type,
+                         description= update.description,
+                         timestamp= update.timestamp,
+                         expiry_date= update.expiry_date,
+                         active= True)
             penalties[idx] = new_record.model_dump()
             save_all(penalties)
             return new_record

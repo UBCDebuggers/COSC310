@@ -19,6 +19,7 @@ def create_penalty(penalty : PenaltyCreate) -> Penalty:
                          )
     penalties.append(new_record.model_dump())
     save_all(penalties)
+    return new_record
 
 #gets all penalties for a given user
 def get_penalties_for_user(userid : str) -> List[Penalty]:

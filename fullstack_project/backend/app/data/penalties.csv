@@ -1,1 +1,1 @@
-userid;penalty_type;discription;timestamp;expiry_date;active
+penalty_id;userid;penalty_type;description;timestamp;expiry_date;active

@@ -42,10 +42,15 @@ def borrow_book(userid : str,  isbn : str, is_admin : bool, due_date : datetime)
         
     except HTTPException as e:
         if e.status_code == status.HTTP_404_NOT_FOUND:
-            create_reservation(BookReservationCreate(isbn=isbn, userid=userid, expiry_date=due_date))
-            return {"message": "Book reserved successfully. Please visit a librarian as soon as possible finish the transaction."}
-        else:
-            raise e
+            try:
+                create_reservation(BookReservationCreate(isbn=isbn, userid=userid, expiry_date=due_date))
+                return {"message": "Book reserved successfully. Please visit a librarian as soon as possible finish the transaction."}
+            except HTTPException as e:
+                if e.status_code == status.HTTP_403_FORBIDDEN:
+                    create_waitlist(WaitListCreate(isbn=isbn, userid=userid))
+                    return {"message": "Book is unavailable. You have been added to the waitlist."}
+                raise e
+        raise e
         
 def return_book(userid : str, isbn : str) -> dict:
     reservation = get_latest_reservation_by_isbn(isbn)

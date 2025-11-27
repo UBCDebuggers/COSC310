@@ -294,12 +294,12 @@ class TestWaitlistFunctions:
 
         assert result.isbn == new_waitlist_data.isbn
         assert result.userid == new_waitlist_data.userid
-        assert result.position == 0 
+        assert result.position == 1
         mock_save_all.assert_called_once()
         saved_data = mock_save_all.call_args[0][0]
         assert len(saved_data) == 1
         assert saved_data[0]['userid'] == 'newUser'
-        assert saved_data[0]['position'] == 0
+        assert saved_data[0]['position'] == 1
 
     def test_create_waitlist_success_existing_book(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
         """Tests creating a waitlist when the book has existing entries."""
@@ -469,7 +469,7 @@ class TestWaitlistFunctions:
         saved_data = mock_save_all.call_args[0][0]
         
         updated_positions = [wl['position'] for wl in saved_data if wl['isbn'] == '978-0321765723']
-        assert sorted(updated_positions) == [0, 1, 2, 3]
+        assert sorted(updated_positions) == [1, 2, 3, 4]
         
         other_book_position = [wl['position'] for wl in saved_data if wl['isbn'] == '978-0134768560']
         assert other_book_position == [1]

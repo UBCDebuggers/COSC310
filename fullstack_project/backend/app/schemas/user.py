@@ -3,7 +3,7 @@ import uuid
 from pydantic import BaseModel, Field
 
 class User(BaseModel):
-    userid : str = Field(default_factory= lambda: str(uuid.uuid4))
+    userid : str = Field(default_factory= lambda: str(uuid.uuid4()))
     email : str
     hash_password : str
     is_admin : bool

@@ -8,7 +8,7 @@ from app.repositories.waitlists_repo import load_all, save_all
 #Creates a waitlist for a user and a book
 def create_waitlist(newWaitList: WaitListCreate) -> WaitList:
     waitlists = load_all()
-    last_position = -1
+    last_position = 0
     for waitlist in waitlists:
         if waitlist.get('isbn') != newWaitList.isbn:
             continue
@@ -83,15 +83,30 @@ def delete_specific_waitlist(isbn : str, userid :str) -> None:
     save_all(waitlists)
     
 #Refreshes a given waitlist 
-def update_waitlists(isbn : str) -> None:
+def update_waitlists(isbn: str) -> None:
     waitlists = load_all()
-    called_once = False
-    for idx, waitlist in enumerate(waitlists):
-        if waitlist.get('isbn') == isbn:
-            updated_waitlist = WaitList(**waitlist)
-            updated_waitlist.position-= 1
-            waitlists[idx] = updated_waitlist.model_dump()
-            called_once = True
-    if not called_once:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail= f"No waitlists for book {isbn} found")
+    indexed_found: List[tuple[int, WaitList]] = []
+
+    for idx, wl in enumerate(waitlists):
+        if wl.get("isbn") == isbn:
+            indexed_found.append((idx, WaitList(**wl)))
+
+    if not indexed_found:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No waitlists for book {isbn} found"
+        )
+
+    indexed_found.sort(key=lambda pair: pair[1].position)
+
+    for new_position, (idx, wl_model) in enumerate(indexed_found, start=1):
+        wl_model.position = new_position
+        waitlists[idx] = wl_model.model_dump()
+
     save_all(waitlists)
+    
+#Gets all unique isbn's with waitlists
+def get_active_waitlists() -> List:
+    waitlists = load_all()
+    unique_isbns = {waitlist["isbn"] for waitlist in waitlists}
+    return list(unique_isbns)

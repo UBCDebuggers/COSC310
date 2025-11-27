@@ -1,6 +1,5 @@
-import uuid
 from typing import List
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from app.schemas.authentication import LoginRequest
 from app.schemas.user import User, UserCreate, UserUpdate
 from app.repositories.users_repo import load_all, save_all
@@ -15,11 +14,9 @@ def list_users() -> List[User]:
 #Creates a new user
 def create_user(newUser: UserCreate) -> User:
     users = load_all()
-    newId = str(uuid.uuid4())
-    while any(user.get("userid") == newId for user in users):
-        newId = str(uuid.uuid4())
-    new_record = User(userid = newId,
-                      email = newUser.email.strip(),
+    while any(user.get("email") == newUser.email for user in users):
+        raise HTTPException(status_code= status.HTTP_401_UNAUTHORIZED, detail= f"Account already exists")
+    new_record = User(email = newUser.email.strip(),
                       hash_password = bcrypt_context.hash(newUser.password.strip()),
                       is_admin = newUser.is_admin,
                       department = newUser.department.strip(),
@@ -62,7 +59,7 @@ def authenticate_user(payload : LoginRequest) -> User:
     users = load_all()
     found = None
     for user in users:
-        if user.get('email') == payload.username_email or user.get('username') == payload.username_email:
+        if user.get('email') == payload.email:
             found = user
             break
     

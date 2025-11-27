@@ -1,8 +1,10 @@
 from datetime import datetime, timezone
 from app.schemas.reservation import RETURNED, RETURNED_OVERDUE, BookReservationCreate, NOT_RETURNED
+from app.schemas.penalties import LIMITED_ACTIONS
 from app.schemas.waitlist import WaitListCreate
 from app.services.reservation_service import create_reservation, update_reservation, get_latest_reservation_by_isbn
 from app.services.waitlist_service import create_waitlist, get_waitlists_for_books, get_specific_waitlist, delete_specific_waitlist
+from app.services.penalties_service import get_penalties_for_user
 from fastapi import HTTPException, status
 
 def borrow_book(userid : str,  isbn : str, is_admin : bool, due_date : datetime) -> dict:
@@ -31,7 +33,8 @@ def borrow_book(userid : str,  isbn : str, is_admin : bool, due_date : datetime)
     except HTTPException as e:
         if e.status_code != status.HTTP_404_NOT_FOUND:
             raise e
-            
+    
+    check_restrictions(userid, "You are restricted from being added to waitlists.")
     try:
         get_waitlists_for_books(isbn)
         create_waitlist(WaitListCreate(isbn=isbn, userid=userid))
@@ -56,3 +59,16 @@ def return_book(userid : str, isbn : str) -> dict:
                                         active= False)
     update_reservation(reservation.reservation_id, new_record)
     return {"message": "Book successfully returned!"}
+
+def check_restrictions(user_id : str, error : str) -> None:
+    past_restrictions = None
+    try:
+        past_restrictions = get_penalties_for_user(user_id)
+    except HTTPException:
+        pass
+    restrictions =  min(past_restrictions, key=lambda r: abs(r.timestamp - datetime.now(timezone.utc))) if past_restrictions else None
+    if not restrictions:
+        return None
+    if restrictions.active and restrictions.penalty_type == LIMITED_ACTIONS:
+        raise HTTPException(status_code= status.HTTP_403_FORBIDDEN, detail= error)
+    return None

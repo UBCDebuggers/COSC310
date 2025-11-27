@@ -4,8 +4,9 @@ from unittest.mock import MagicMock
 from fastapi import HTTPException, status
 import pytest
 from app.routers.library import book_return, borrow, get_book_history, get_book_status, get_outstanding_loans, get_user_loans
+from app.schemas.penalties import LIMITED_ACTIONS, Penalty
 from app.schemas.reservation import RETURNED, RETURNED_OVERDUE, NOT_RETURNED
-from app.services.library_service import borrow_book, return_book
+from app.services.library_service import borrow_book, check_restrictions, return_book
 from app.routers.library import (
     penalise_user,
     get_user_penalties,
@@ -557,3 +558,85 @@ async def test_update_penalty_admin(mock_router_services, admin_user):
 async def test_update_penalty_forbidden(regular_user):
     with pytest.raises(HTTPException):
         await update_restrictions("p1", current_user=regular_user)
+        
+def test_check_restrictions_no_penalties(mocker):
+    mocker.patch(
+        "app.services.library_service.get_penalties_for_user",
+        return_value=[]
+    )
+
+    assert check_restrictions("user123", "error message") is None
+    
+def test_check_restrictions_inactive_penalty(mocker):
+    penalties = [
+        Penalty(
+            userid="user123",
+            penalty_type=LIMITED_ACTIONS,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            active=False
+        ),
+        Penalty(
+            userid="user123",
+            penalty_type=LIMITED_ACTIONS,
+            timestamp="2004-01-01T15:00:00+00:00",
+            active=False
+        )
+    ]
+
+    mocker.patch(
+        "app.services.library_service.get_penalties_for_user",
+        return_value=penalties
+    )
+
+    assert check_restrictions("user123", "error message") is None
+
+def test_check_restrictions_active_but_wrong_type(mocker):
+    WRONG_TYPE = 0
+
+    penalties = [
+        Penalty(
+            userid="user123",
+            penalty_type=WRONG_TYPE,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            active=True
+        ),
+        Penalty(
+            userid="user123",
+            penalty_type=LIMITED_ACTIONS,
+            timestamp="2004-01-01T15:00:00+00:00",
+            active=False
+        )
+    ]
+
+    mocker.patch(
+        "app.services.library_service.get_penalties_for_user",
+        return_value=penalties
+    )
+
+    assert check_restrictions("user123", "error message") is None
+    
+def test_check_restrictions_active_limited_actions(mocker):
+    penalties = [
+        Penalty(
+            userid="user123",
+            penalty_type=LIMITED_ACTIONS,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            active=True
+        ),
+        Penalty(
+            userid="user123",
+            penalty_type=LIMITED_ACTIONS,
+            timestamp="2004-01-01T15:00:00+00:00",
+            active=False
+        )
+    ]
+
+    mocker.patch(
+        "app.services.library_service.get_penalties_for_user",
+        return_value=penalties
+    )
+
+    with pytest.raises(HTTPException):
+        check_restrictions("user123", "Access denied")
+
+

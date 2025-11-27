@@ -82,7 +82,7 @@ def delete_specific_waitlist(isbn : str, userid :str) -> None:
     waitlists = new_waitlists
     save_all(waitlists)
     
-#Deincrements all the positions in the waitlists by 1
+#Refreshes a given waitlist 
 def update_waitlists(isbn : str) -> None:
     waitlists = load_all()
     called_once = False

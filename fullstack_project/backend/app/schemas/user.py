@@ -1,8 +1,9 @@
 from typing import Optional
-from pydantic import BaseModel
+import uuid
+from pydantic import BaseModel, Field
 
 class User(BaseModel):
-    userid : str
+    userid : str = Field(default_factory= lambda: str(uuid.uuid4))
     email : str
     hash_password : str
     is_admin : bool

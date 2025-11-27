@@ -49,7 +49,7 @@ def test_login_success_returns_token(client, mock_auth):
     assert body["token_type"] == "bearer"
     mock_auth["authenticate_user"].assert_called_once()
     args, _ = mock_auth["authenticate_user"].call_args
-    assert args[0].username_email == "tester"
+    assert args[0].email == "tester"
     assert args[0].password == "secret"
     mock_auth["create_access_token"].assert_called_once()
     _, kwargs = mock_auth["create_access_token"].call_args

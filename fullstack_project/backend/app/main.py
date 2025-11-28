@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers.auth import router as auth_router
 from app.routers.books import router as books_router
@@ -24,7 +24,13 @@ def waitlists_refresh():
         update_waitlists(isbn)
         
 def penalties_refresh():
-    active_penalties = get_penalties()
+    active_penalties = None
+    try:
+        active_penalties = get_penalties()
+    except HTTPException:
+        pass
+    if not active_penalties:
+        return
     current_date = datetime.now(timezone.utc)
     for penalty in active_penalties:
         if penalty.expiry_date < current_date:

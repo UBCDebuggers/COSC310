@@ -318,19 +318,34 @@ const Sidebar = ({ children }) => {
                   <Menu.Positioner>
                     <Menu.Content>
                       <Menu.Item value="account">
-                        <Flex gap={2}>
+                        <Flex
+                          gap={2}
+                          w={"full"}
+                          borderBottomWidth={1}
+                          borderColor={"grey.300"}
+                        >
                           <BsPerson size={25} />
                           <Text fontWeight={"bold"}>Account</Text>
                         </Flex>
                       </Menu.Item>
                       <Menu.Item value="settings" justifyContent={"center"}>
-                        <Flex gap={2}>
+                        <Flex
+                          gap={2}
+                          w={"full"}
+                          borderBottomWidth={1}
+                          borderColor={"grey.300"}
+                        >
                           <BsGear size={25} />
                           <Text fontWeight={"bold"}>Settings</Text>
                         </Flex>
                       </Menu.Item>
                       <Menu.Item value="logout">
-                        <Flex gap={2} borderWidth={2} borderColor={"green.100"}>
+                        <Flex
+                          gap={2}
+                          w={"full"}
+                          borderBottomWidth={1}
+                          borderColor={"grey.300"}
+                        >
                           <BsBoxArrowLeft size={25} />
                           <Text fontWeight={"bold"}>Logout</Text>
                         </Flex>

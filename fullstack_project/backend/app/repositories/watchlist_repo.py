@@ -2,6 +2,8 @@ from __future__ import annotations
 import csv, os, tempfile, asyncio, time
 from typing import Dict, List
 
+wlLock = asyncio.Lock()
+
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 BOOKS_PATH = os.path.join(DATA_DIR, "books.csv")

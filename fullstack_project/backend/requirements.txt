@@ -7,13 +7,17 @@ passlib
 python-dotenv
 python-jose[cryptography]
 bcrypt==4.0.1
+apscheduler
 
 
 # Data Processing (Add if needed)
 pandas
 python-multipart
+Pillow
 
 # Testing
 pytest
 httpx
 pytest-asyncio
+Deprecated
+pytest-mock

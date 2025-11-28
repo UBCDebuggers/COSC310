@@ -1,0 +1,2 @@
+reservation_id;isbn;userid;reservation_date;status;expiry_date;active
+e128c688-0a57-44d2-a8a5-e249bf2e5f5a;string;3740b7c5-b91a-4e5b-9da9-faba80dbd727;2025-11-27 01:42:31.261990;1;2025-11-27 09:42:23.380000+00:00;True

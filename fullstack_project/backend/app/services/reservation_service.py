@@ -68,7 +68,6 @@ def create_reservation(newReservation : BookReservationCreate) -> BookReservatio
     except HTTPException as e:
         if e.status_code == status.HTTP_403_FORBIDDEN:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail= f"Please return any outstanding books before attempting to reserve a book for user {user.userid}")
-
     new_record = BookReservation(isbn= newReservation.isbn,
                                  userid= newReservation.userid,
                                  expiry_date= newReservation.expiry_date)

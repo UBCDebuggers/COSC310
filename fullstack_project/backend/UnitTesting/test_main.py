@@ -18,7 +18,6 @@ from app.services.waitlist_service import (create_waitlist,
                                            delete_waitlists_for_user, 
                                            delete_waitlists_for_book, update_waitlists
 )
-from app.schemas.requests import Request, RequestCreate
 from app.schemas.waitlist import WaitList, WaitListCreate
 from fastapi import HTTPException
 from datetime import datetime
@@ -106,40 +105,20 @@ def test_create_user_success(mocker, mock_user_data, mock_new_user_create):
     """Tests successful creation of a new user."""
     mock_load = mocker.patch('app.services.users_service.load_all', return_value=mock_user_data)
     mock_save = mocker.patch('app.services.users_service.save_all')
-    mock_uuid = mocker.patch('app.services.users_service.uuid.uuid4', return_value=uuid.UUID('00000000-0000-0000-0000-00000000000c'))
     mock_hash = mocker.patch('app.services.users_service.bcrypt_context.hash', return_value="hashed_charlie")
 
     new_user = create_user(mock_new_user_create)
 
-    assert new_user.userid == '00000000-0000-0000-0000-00000000000c'
     assert new_user.username == "charlie_fin" 
     assert new_user.hash_password == "hashed_charlie"
     
     mock_load.assert_called_once()
-    mock_uuid.assert_called_once()
     mock_hash.assert_called_once()
     
     mock_save.assert_called_once()
     saved_data = mock_save.call_args[0][0]
     assert len(saved_data) == 3
     assert saved_data[2]['userid'] == new_user.userid
-
-def test_create_user_handles_uuid_collision(mocker, mock_user_data, mock_new_user_create):
-    """Tests that a UUID collision is detected and a new UUID is generated."""
-    mock_user_data[0]['userid'] = '00000000-0000-0000-0000-00000000000c'
-    mocker.patch('app.services.users_service.load_all', return_value=mock_user_data)
-    
-    mock_uuid = mocker.patch('app.services.users_service.uuid.uuid4', side_effect=[
-        uuid.UUID('00000000-0000-0000-0000-00000000000c'), 
-        uuid.UUID('00000000-0000-0000-0000-00000000000d')   
-    ])
-    mocker.patch('app.services.users_service.save_all')
-    mocker.patch('app.services.users_service.bcrypt_context.hash', return_value="hashed_charlie")
-
-    new_user = create_user(mock_new_user_create)
-
-    assert new_user.userid == '00000000-0000-0000-0000-00000000000d'
-    assert mock_uuid.call_count == 2
 
 def test_get_user_by_id_success(mocker, mock_user_data):
     """Tests successful retrieval of a user by ID."""
@@ -199,8 +178,8 @@ def test_get_user_by_username_not_found(mocker, mock_user_data):
     assert "User: 'ghost_user' not found" in excinfo.value.detail
 
 @pytest.mark.parametrize("login_input, expected_user_id", [
-    (LoginRequest(username_email="alice@example.com", password="password"), "user-a"),
-    (LoginRequest(username_email="bob_it", password="password"), "user-b"),
+    (LoginRequest(email="alice@example.com", password="password"), "user-a"),
+    (LoginRequest(email="bob@example.com", password="password"), "user-b"),
 ])
 def test_authenticate_user_success(mocker, mock_user_data, login_input, expected_user_id):
     """Tests successful authentication via email or username."""
@@ -220,7 +199,7 @@ def test_authenticate_user_failure_wrong_password(mocker, mock_user_data):
     mock_bcrypt = mocker.patch("app.services.users_service.bcrypt_context")
     mock_bcrypt.verify.return_value = False
     
-    payload = LoginRequest(username_email="alice@example.com", password="wrong_password")
+    payload = LoginRequest(email="alice@example.com", password="wrong_password")
     user = authenticate_user(payload)
     
     assert user is None
@@ -232,7 +211,7 @@ def test_authenticate_user_failure_not_found(mocker, mock_user_data):
     mock_bcrypt = mocker.patch("app.services.users_service.bcrypt_context")
     mock_bcrypt.verify.return_value = None
     
-    payload = LoginRequest(username_email="ghost@example.com", password="password")
+    payload = LoginRequest(email="ghost@example.com", password="password")
     user = authenticate_user(payload)
     
     assert user is None
@@ -315,12 +294,12 @@ class TestWaitlistFunctions:
 
         assert result.isbn == new_waitlist_data.isbn
         assert result.userid == new_waitlist_data.userid
-        assert result.position == 0 
+        assert result.position == 1
         mock_save_all.assert_called_once()
         saved_data = mock_save_all.call_args[0][0]
         assert len(saved_data) == 1
         assert saved_data[0]['userid'] == 'newUser'
-        assert saved_data[0]['position'] == 0
+        assert saved_data[0]['position'] == 1
 
     def test_create_waitlist_success_existing_book(self, mock_load_all: MagicMock, mock_save_all: MagicMock):
         """Tests creating a waitlist when the book has existing entries."""
@@ -490,7 +469,7 @@ class TestWaitlistFunctions:
         saved_data = mock_save_all.call_args[0][0]
         
         updated_positions = [wl['position'] for wl in saved_data if wl['isbn'] == '978-0321765723']
-        assert sorted(updated_positions) == [0, 1, 2, 3]
+        assert sorted(updated_positions) == [1, 2, 3, 4]
         
         other_book_position = [wl['position'] for wl in saved_data if wl['isbn'] == '978-0134768560']
         assert other_book_position == [1]

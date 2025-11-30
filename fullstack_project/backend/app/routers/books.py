@@ -9,30 +9,31 @@ from app.schemas.filter import Filter
 
 router = APIRouter(prefix="/books", tags=["books"])
 
+#allows for book searching with or without filters
 @router.get("/search/{title}", response_model=List[Book])
 def search_book(title : str, filters : Filter = Depends()):
     return search_books(title, filter_data=filters)
 
-#simple post the payload (is the body of the request)
+#create a book using the entered informatio
 @router.post("/create", response_model=Book, status_code=status.HTTP_201_CREATED)
 async def post_book(payload: BookCreate, token_data : dict = Depends(verify_access_token)):
     if not token_data["is_admin"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     return create_book(payload)
 
+#gets a book using isbn
 @router.get("/{isbn}", response_model=Book, status_code=status.HTTP_200_OK)
 def get_book(isbn: str):
     return get_book_by_isbn(isbn)
 
-## We use put here because we are not creating an entirely new item, ie. we keep id the same
+#updates a book
 @router.put("/update/{isbn}", response_model=Book, status_code=status.HTTP_200_OK)
 async def put_book(isbn: str, payload: BookUpdate, token_data : dict = Depends(verify_access_token)):
     if not token_data["is_admin"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     return update_book(isbn, payload)
 
-
-## we put the status there becuase in a delete, we wont have a return so it indicates it happened succesfully
+#deletes a book
 @router.delete("/delete/{isbn}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_book(isbn : str, token_data : dict = Depends(verify_access_token)):
     if not token_data["is_admin"]:

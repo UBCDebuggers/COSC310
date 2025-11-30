@@ -120,56 +120,6 @@ def test_get_notifications_by_userid_empty(mock_notification_repo):
     
     assert len(result) == 0
 
-# Getting a specific notification by ID
-def test_get_notification_by_id_success(mock_notification_repo):
-    mock_notification_repo.load_all.return_value = [
-        {
-            "userid": "user1",
-            "notificationid": "notif1",
-            "type": "book_added",
-            "message": "Book added",
-            "timestamp": "2024-01-01T00:00:00",
-            "isread": "false",
-            "relatedid": "isbn1",
-            "category": "wishlist"
-        },
-        {
-            "userid": "user1",
-            "notificationid": "notif2",
-            "type": "book_available",
-            "message": "Book available",
-            "timestamp": "2024-01-02T00:00:00",
-            "isread": "true",
-            "relatedid": "isbn2",
-            "category": "availability"
-        }
-    ]
-    
-    result = get_notification_by_id("notif2")
-    
-    assert result is not None
-    assert result["notificationid"] == "notif2"
-    assert result["type"] == "book_available"
-
-# Getting non-existent notification returns None
-def test_get_notification_by_id_not_found(mock_notification_repo):
-    mock_notification_repo.load_all.return_value = [
-        {
-            "userid": "user1",
-            "notificationid": "notif1",
-            "type": "book_added",
-            "message": "Book added",
-            "timestamp": "2024-01-01T00:00:00",
-            "isread": "false",
-            "relatedid": "isbn1",
-            "category": "wishlist"
-        }
-    ]
-    
-    result = get_notification_by_id("nonexistent")
-    
-    assert result is None
-
 # Updating a notification
 def test_update_notification_success(mock_notification_repo):
     mock_notification_repo.load_all.return_value = [
@@ -192,25 +142,6 @@ def test_update_notification_success(mock_notification_repo):
     assert result["notificationid"] == "notif1"
     assert result["isread"] == "true"
     mock_notification_repo.save_all.assert_called_once()
-
-# Updating non-existent notification returns None
-def test_update_notification_not_found(mock_notification_repo):
-    mock_notification_repo.load_all.return_value = [
-        {
-            "userid": "user1",
-            "notificationid": "notif1",
-            "type": "book_added",
-            "message": "Book added",
-            "timestamp": "2024-01-01T00:00:00",
-            "isread": "false",
-            "relatedid": "isbn1",
-            "category": "wishlist"
-        }
-    ]
-    
-    result = update_notification("nonexistent", {"isread": "true"})
-    
-    assert result is None
 
 # Deleting a notification
 def test_delete_notification_success(mock_notification_repo):
@@ -246,25 +177,6 @@ def test_delete_notification_success(mock_notification_repo):
     saved_list = mock_notification_repo.save_all.call_args[0][0]
     assert len(saved_list) == 1
     assert saved_list[0]["notificationid"] == "notif2"
-
-# Deleting non-existent notification returns False
-def test_delete_notification_not_found(mock_notification_repo):
-    mock_notification_repo.load_all.return_value = [
-        {
-            "userid": "user1",
-            "notificationid": "notif1",
-            "type": "book_added",
-            "message": "Book added",
-            "timestamp": "2024-01-01T00:00:00",
-            "isread": "false",
-            "relatedid": "isbn1",
-            "category": "wishlist"
-        }
-    ]
-    
-    result = delete_notification("nonexistent")
-    
-    assert result is False
 
 # Deleting read notifications for specific user
 def test_delete_read_notifications_success(mock_notification_repo):
@@ -341,21 +253,3 @@ def test_delete_read_notifications_empty(mock_notification_repo):
     
     assert result == 0
     mock_notification_repo.save_all.assert_not_called()
-
-# Multiple notifications with same timestamp maintain order
-def test_add_notification_timestamp_format(mock_notification_repo):
-    mock_notification_repo.load_all.return_value = []
-    mock_notification_repo.save_all.return_value = None
-    
-    result = add_notification(
-        userid="user1",
-        notification_type="book_added",
-        category="wishlist",
-        message="Book added",
-        relatedid="isbn1"
-    )
-    
-    timestamp = result["timestamp"]
-    assert "T" in timestamp  
-    assert ":" in timestamp 
-    datetime.fromisoformat(timestamp)

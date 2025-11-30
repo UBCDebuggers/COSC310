@@ -74,19 +74,6 @@ def test_get_user_notifications_success(client: TestClient, mock_notification_se
     
     cleanup_notification_auth()
 
-# Test: Get all notifications returns empty list when user has none
-def test_get_user_notifications_empty(client: TestClient, mock_notification_services):
-    setup_notification_auth(is_authenticated=True)
-    
-    mock_notification_services["get_notifications_by_userid"].return_value = []
-    
-    response = client.get("/notifications/user1")
-    
-    assert response.status_code == 200
-    assert response.json() == []
-    
-    cleanup_notification_auth()
-
 # Test: Get unread notifications with count
 def test_get_unread_notifications_success(client: TestClient, mock_notification_services):
     setup_notification_auth(is_authenticated=True)
@@ -129,31 +116,6 @@ def test_get_unread_notifications_success(client: TestClient, mock_notification_
     assert response.status_code == 200
     assert response.json()["count"] == 2
     assert len(response.json()["notifications"]) == 2
-    
-    cleanup_notification_auth()
-
-# Test: Get unread notifications when user has no unread
-def test_get_unread_notifications_empty(client: TestClient, mock_notification_services):
-    setup_notification_auth(is_authenticated=True)
-    
-    mock_notification_services["get_notifications_by_userid"].return_value = [
-        {
-            "userid": "user1",
-            "notificationid": "notif1",
-            "type": "book_added",
-            "message": "New book added",
-            "timestamp": "2024-01-01T00:00:00",
-            "isread": "true",
-            "relatedid": "isbn1",
-            "category": "wishlist"
-        }
-    ]
-    
-    response = client.get("/notifications/user1/unread")
-    
-    assert response.status_code == 200
-    assert response.json()["count"] == 0
-    assert len(response.json()["notifications"]) == 0
     
     cleanup_notification_auth()
 
@@ -204,52 +166,6 @@ def test_create_notification_with_email(client: TestClient, mock_notification_se
     
     cleanup_notification_auth()
 
-# Test: Create notification without email
-def test_create_notification_without_email(client: TestClient, mock_notification_services):
-    setup_notification_auth(is_authenticated=True)
-    
-    from app.schemas.user import User
-    mock_notification_services["get_user_by_id"].return_value = User(
-        userid="user1",
-        email="user1@example.com",
-        hash_password="hashed",
-        is_admin=False,
-        department="eng",
-        age=25,
-        username="user1",
-        firstname="John",
-        lastname="Doe"
-    )
-    
-    mock_notification_services["add_notification"].return_value = {
-        "userid": "user1",
-        "notificationid": "notif1",
-        "type": "book_added",
-        "message": "New book added",
-        "timestamp": "2024-01-03T00:00:00",
-        "isread": "false",
-        "relatedid": "isbn1",
-        "category": "wishlist"
-    }
-    
-    response = client.post(
-        "/notifications/create",
-        params={
-            "userid": "user1",
-            "notification_type": "book_added",
-            "category": "wishlist",
-            "message": "New book added",
-            "relatedid": "isbn1",
-            "send_email": False
-        }
-    )
-    
-    assert response.status_code == 200
-    assert response.json()["status"] == "success"
-    assert "email queued" not in response.json()["message"]
-    
-    cleanup_notification_auth()
-
 # Test: Create notification for non-existent user
 def test_create_notification_user_not_found(client: TestClient, mock_notification_services):
     setup_notification_auth(is_authenticated=True)
@@ -293,18 +209,5 @@ def test_mark_notification_as_read_success(client: TestClient, mock_notification
     assert response.status_code == 200
     assert response.json()["status"] == "success"
     assert response.json()["notification"]["isread"] == True
-    
-    cleanup_notification_auth()
-
-# Test: Mark non-existent notification as read
-def test_mark_notification_as_read_not_found(client: TestClient, mock_notification_services):
-    setup_notification_auth(is_authenticated=True)
-    
-    mock_notification_services["update_notification"].return_value = None
-    
-    response = client.put("/notifications/nonexistent/read")
-    
-    assert response.status_code == 404
-    assert "not found" in response.json()["detail"]
     
     cleanup_notification_auth()

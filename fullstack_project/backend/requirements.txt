@@ -8,6 +8,8 @@ python-dotenv
 python-jose[cryptography]
 bcrypt==4.0.1
 apscheduler
+scikit-learn
+numpy
 
 
 # Data Processing (Add if needed)

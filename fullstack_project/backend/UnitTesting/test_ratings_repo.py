@@ -24,9 +24,9 @@ def test_load_all_returns_empty_when_missing(fake_ratings_file):
 
 def test_load_all_reads_rows_correctly(fake_ratings_file):
     fake_ratings_file.write_text(
-        "userid,isbn,score\n"
-        "u1,111,5\n"
-        "u2,222,3\n",
+        "userid;isbn;score\n"
+        "u1;111;5\n"
+        "u2;222;3\n",
         encoding="utf-8",
     )
 
@@ -51,9 +51,9 @@ def test_save_all_writes_valid_csv(fake_ratings_file):
 
     # Verify by reading manually
     text = fake_ratings_file.read_text(encoding="utf-8")
-    assert "userid,isbn,score" in text
-    assert "u1,111,4" in text
-    assert "u2,222,5" in text
+    assert "userid;isbn;score" in text
+    assert "u1;111;4" in text
+    assert "u2;222;5" in text
 
 
 def test_save_all_deletes_file_if_empty(fake_ratings_file):
@@ -73,4 +73,4 @@ def test_save_all_preserves_field_order(fake_ratings_file):
     ratings_repo.save_all(items)
 
     written = fake_ratings_file.read_text(encoding="utf-8").splitlines()[0]
-    assert written == "userid,isbn,score"
+    assert written == "userid;isbn;score"

@@ -113,39 +113,39 @@ def recommend_for_user(userid : str, N : int = 5):
 
 
 #sorts books by popularity
-def get_popular_books(num_books : int) -> List[str]:
+def get_popular_books(num_books : int) -> List[dict]:
     analytics = load_all()
     popularity_table : List[tuple[str, float]] = []
     
     for analytic in analytics:
         request_count = int(analytic.get('request_count'))
         unique_users = int(analytic.get('unique_users'))
-        popularity_score = log(1 + request_count) + log(1 + unique_users)
+        popularity_score = log(1 + int(request_count)) + log(1 + int(unique_users))
         
         popularity_table.append((analytic.get('book_id'), popularity_score))
         
     popularity_table.sort(key= lambda pair: pair[1], reverse=True)
-    return popularity_table[0:num_books]
+    return [{"isbn" : item[0], "rating" : item[1]} for item in popularity_table[0:num_books]]
 
 #sorts books by engagement
-def get_books_by_engagement(num_books : int) -> List[str]:
+def get_books_by_engagement(num_books : int) -> List[dict]:
     analytics = load_all()
-    rating_table : List[tuple[str, float]] = []
+    engagement_table : List[tuple[str, float]] = []
     
     for analytic in analytics:
         request_count = analytic.get('request_count')
         rating_count = analytic.get('rating_count')
         unique_users = analytic.get('unique_users')
         
-        engagement = request_count + rating_count + unique_users
+        engagement = int(request_count) + int(rating_count) + int(unique_users)
         
-        rating_table.append((analytic.get('book_id'), engagement))
+        engagement_table.append((analytic.get('book_id'), engagement))
     
-    rating_table.sort(key= lambda pair: pair[1], reverse=True)
-    return rating_table[0:num_books]
+    engagement_table.sort(key= lambda pair: pair[1], reverse=True)
+    return [{"isbn" : item[0], "engagement_score" : item[1]} for item in engagement_table[0:num_books]]
 
 #sorts books by their rating
-def get_best_rated_books(num_books : int) -> List[str]:
+def get_best_rated_books(num_books : int) -> List[dict]:
     analytics = load_all()
     rating_table : List[tuple[str, float]] = []
     
@@ -153,9 +153,10 @@ def get_best_rated_books(num_books : int) -> List[str]:
         avg_rating = analytic.get('avg_rating')
         rating_count = analytic.get('rating_count')
         
-        rating_score = avg_rating * log(1 + rating_count)
+        rating_score = float(avg_rating) * log(1 + int(rating_count))
         
         rating_table.append((analytic.get('book_id'), rating_score))
     
     rating_table.sort(key= lambda pair: pair[1], reverse=True)
-    return rating_table[0:num_books]
+    
+    return [{"isbn" : item[0], "rating" : item[1]} for item in rating_table[0:num_books]]

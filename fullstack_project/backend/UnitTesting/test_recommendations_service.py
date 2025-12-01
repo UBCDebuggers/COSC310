@@ -157,8 +157,8 @@ class TestRecommendationFunctions(unittest.TestCase):
 
         result = get_popular_books(2)
 
-        self.assertEqual(result[0][0], 'B002')
-        self.assertEqual(result[1][0], 'B003')
+        self.assertEqual(result[0].get("isbn"), 'B002')
+        self.assertEqual(result[1].get("isbn"), 'B003')
 
     @patch(f"{MOCK_MODULE}.load_all")
     def test_get_books_by_engagement(self, mock_load_all):
@@ -166,9 +166,9 @@ class TestRecommendationFunctions(unittest.TestCase):
 
         result = get_books_by_engagement(3)
 
-        self.assertEqual(result[0][0], 'B003')
-        self.assertEqual(result[1][0], 'B002')
-        self.assertEqual(result[2][0], 'B001')
+        self.assertEqual(result[0].get("isbn"), 'B003')
+        self.assertEqual(result[1].get("isbn"), 'B002')
+        self.assertEqual(result[2].get("isbn"), 'B001')
 
     @patch(f"{MOCK_MODULE}.load_all")
     def test_get_best_rated_books(self, mock_load_all):
@@ -176,8 +176,8 @@ class TestRecommendationFunctions(unittest.TestCase):
 
         result = get_best_rated_books(2)
 
-        self.assertEqual(result[0][0], 'B001')
-        self.assertEqual(result[1][0], 'B003')
+        self.assertEqual(result[0].get("isbn"), 'B001')
+        self.assertEqual(result[1].get("isbn"), 'B003')
 
 if __name__ == "__main__":
     unittest.main()

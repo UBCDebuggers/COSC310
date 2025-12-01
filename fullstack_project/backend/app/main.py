@@ -7,6 +7,7 @@ from app.routers.users import router as users_router
 from app.routers.watchlist import router as watchlist_router
 from app.routers.history import router as history_router
 from app.routers.library import router as library_router
+from app.routers.notification import router as notification_router
 from app.routers.analytics import router as analytics_router
 from app.routers.waitlist import router as waitlist_router
 from app.routers.recommend import router as recommend_router
@@ -93,6 +94,7 @@ app.include_router(users_router)
 app.include_router(watchlist_router)
 app.include_router(history_router)
 app.include_router(library_router)
+app.include_router(notification_router)
 app.include_router(analytics_router)
 app.include_router(waitlist_router)
 app.include_router(recommend_router)

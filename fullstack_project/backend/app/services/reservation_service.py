@@ -68,7 +68,6 @@ def create_reservation(newReservation : BookReservationCreate) -> BookReservatio
     except HTTPException as e:
         if e.status_code == status.HTTP_403_FORBIDDEN:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail= f"Please return any outstanding books before attempting to reserve a book for user {user.userid}")
-
     new_record = BookReservation(isbn= newReservation.isbn,
                                  userid= newReservation.userid,
                                  expiry_date= newReservation.expiry_date)
@@ -76,6 +75,21 @@ def create_reservation(newReservation : BookReservationCreate) -> BookReservatio
     reservations.append(new_record.model_dump())
     save_all(reservations)
     return new_record
+
+#Returns all outstanding reservations
+def find_outstanding() -> List[BookReservation]:
+    reservations = load_all()
+    out = []
+    for reservation in reservations:
+        record = BookReservation(**reservation)
+        if record.status in [NOT_RETURNED, NOT_RETURNED_OVERDUE] and record.active:
+            out.append(record)
+    
+    if len(out) == 0:
+        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= "No outstanding records found")
+    
+    return out
+            
 
 #Updates a book reservation
 def update_reservation(reservation_id : str, update : BookReservationCreate) -> BookReservation:

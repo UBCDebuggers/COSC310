@@ -9,7 +9,7 @@ def load_all() -> List[Dict[str, Any]]:
         return []
     
     with DATA_PATH.open("r", encoding="utf-8", newline="") as f:
-        reader = csv.DictReader(f)
+        reader = csv.DictReader(f, delimiter=';')
         return [row for row in reader]
 
 def save_all(ratings: List[Dict[str, Any]]) -> None:
@@ -22,7 +22,7 @@ def save_all(ratings: List[Dict[str, Any]]) -> None:
     tmp = DATA_PATH.with_suffix(".tmp")
 
     with tmp.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter=";")
         writer.writeheader()
         writer.writerows(ratings)
     

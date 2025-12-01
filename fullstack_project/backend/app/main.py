@@ -10,14 +10,19 @@ from app.routers.library import router as library_router
 from app.routers.notification import router as notification_router
 from app.routers.analytics import router as analytics_router
 from app.routers.waitlist import router as waitlist_router
+from app.routers.recommend import router as recommend_router
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from datetime import datetime, timezone
+from app.services import analytics_service
 from app.services.penalties_service import deactivate_penalty, get_penalties
 from app.services.waitlist_service import get_active_waitlists, update_waitlists
 
 scheduler = AsyncIOScheduler()
+
+def analytics_refresh():
+    analytics_service.rebuild_analytics()
 
 def waitlists_refresh():
     books_with_waitlists = get_active_waitlists()
@@ -55,6 +60,12 @@ async def lifespan(app: FastAPI):
         id="refresh-01",
         replace_existing= True
     )
+    scheduler.add_job(
+        analytics_refresh,
+        trigger=IntervalTrigger(minutes=5),
+        id="refresh-03",
+        replace_existing=True
+    )
     
     scheduler.start()
     
@@ -86,3 +97,4 @@ app.include_router(library_router)
 app.include_router(notification_router)
 app.include_router(analytics_router)
 app.include_router(waitlist_router)
+app.include_router(recommend_router)

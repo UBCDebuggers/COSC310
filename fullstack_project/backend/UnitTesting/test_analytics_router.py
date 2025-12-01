@@ -36,31 +36,6 @@ def test_get_all_analytics_empty(temp_env, monkeypatch):
     assert res.status_code == 404
     app.dependency_overrides = {}
 
-
-# POST /analytics/rebuild
-def test_rebuild_analytics_success(monkeypatch):
-    app.dependency_overrides[verify_access_token] = override_admin
-    monkeypatch.setattr(analytics_service, "rebuild_analytics", lambda: None)
-
-    client = TestClient(app)
-    res = client.post("/analytics/rebuild")
-
-    assert res.status_code == 200
-
-    app.dependency_overrides = {}
-
-
-def test_rebuild_analytics_requires_admin():
-    app.dependency_overrides[verify_access_token] = override_user
-
-    client = TestClient(app)
-    res = client.post("/analytics/rebuild")
-
-    assert res.status_code == 403
-
-    app.dependency_overrides = {}
-
-
 # DELETE /analytics
 def test_delete_analytics_success(monkeypatch):
     app.dependency_overrides[verify_access_token] = override_admin

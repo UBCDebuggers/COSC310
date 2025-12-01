@@ -46,7 +46,7 @@ def test_make_analytics_record_creates_correct_dict():
     assert result["date"] == "2025-01-01"
     assert result["book_id"] == "123"
     assert result["title"] == "Test Book"
-    assert result["request_count"] == "0"
+    assert result["request_count"] == 0
     assert result["rating_count"] == "4"
     assert result["avg_rating"] == "3.5"
     assert result["unique_users"] == "2"

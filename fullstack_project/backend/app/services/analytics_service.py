@@ -1,8 +1,11 @@
 from datetime import datetime
 from typing import List
 
+from fastapi import HTTPException
+
 from app.repositories import analytics_repo, books_repo, ratings_repo, users_repo
 from app.services.ratings_service import get_ratings_summary, get_unique_users_by_isbn
+from app.services.reservation_service import get_reservations_by_isbn
 
 #Refactor method for rebuild_analytics : Loads all foundational datasets required for analytics.
 def load_foundational_data():
@@ -13,11 +16,17 @@ def load_foundational_data():
 
 #Refactor method for rebuild_analytics  : Creates a normalized analytics record for CSV storage.
 def make_analytics_record(book: dict, rating_summary: dict, unique_users: list , today: str) -> dict:
+    book_id = book.get('isbn')
+    requests = None
+    try:
+        requests = len(get_reservations_by_isbn(book_id))
+    except HTTPException:
+        requests = 0
     return{
         "date": today,
-        "book_id": book.get("isbn"),
+        "book_id": book_id,
         "title": book.get("title", "Unknown"),
-        "request_count": "0",                     
+        "request_count": requests,                     
         "rating_count": str(rating_summary.get("count", 0)),           
         "avg_rating": str(rating_summary.get("avg", 0)),            
         "unique_users": str(len(unique_users))

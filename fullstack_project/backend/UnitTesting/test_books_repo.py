@@ -1,6 +1,7 @@
 from app.repositories import books_repo
 
 def test_books_empty(temp_env):
+    books_repo.load_all.cache_clear()
     assert books_repo.load_all() == []
 
 def test_books_write_and_load(temp_env):

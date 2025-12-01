@@ -20,6 +20,7 @@ import {
   Menu,
   Dialog,
   Button,
+  Box,
 } from "@chakra-ui/react";
 import { LuMoon, LuSun } from "react-icons/lu";
 import { BsPerson, BsGear, BsBoxArrowLeft } from "react-icons/bs";
@@ -156,9 +157,10 @@ const Sidebar = ({ children }) => {
       const formatted = data.map((book) => ({
         label: book.title,
         value: book.isbn,
-        img: book.img_url_s,
+        img: book.img_url_m,
         author: book.author,
       }));
+      console.log("Fetched books:", formatted);
 
       setBooks(formatted);
       setLoading(false);
@@ -170,7 +172,7 @@ const Sidebar = ({ children }) => {
   return (
     <>
       {pathname != "/" ? (
-        <VStack w="100vw" h="100vh">
+        <VStack w="100vw" h="100vh" overflowX={"hidden"}>
           <Flex
             p={4}
             gap={2}
@@ -224,17 +226,17 @@ const Sidebar = ({ children }) => {
                       </Flex>
                     )}
 
-                    {!loading && filteredBooks.length === 0 && (
+                    {!loading && books.length === 0 && (
                       <Combobox.Empty>No books found</Combobox.Empty>
                     )}
 
                     {!loading &&
-                      filteredBooks.map((item) => (
+                      books.map((item) => (
                         <Combobox.Item key={item.value} item={item}>
                           <Flex gap={2} align="center">
                             <img
                               src={item.img}
-                              style={{ width: 40, borderRadius: 6 }}
+                              style={{ width: 40, height: 70, borderRadius: 6 }}
                             />
                             <Flex direction="column">
                               <Text fontWeight="medium">{item.label}</Text>
@@ -357,9 +359,45 @@ const Sidebar = ({ children }) => {
             </Flex>
           </Flex>
           {children}
+          <Flex
+            justifyContent={"center"}
+            p={4}
+            gap={5}
+            w={"100vw"}
+            borderColor={"grey.300"}
+          >
+            <Flex gap={2}>
+              <Box
+                cursor={"pointer"}
+                _hover={{ color: "gray.800" }}
+                color={"gray.400"}
+              >
+                <VscBook size={20} />
+              </Box>
+              <Text alignSelf={"center"} color={"gray.400"}>
+                © 2025 UBCDebuggers, org.
+              </Text>
+            </Flex>
+            <Text
+              alignSelf={"center"}
+              _hover={{ textDecoration: "underline" }}
+              cursor={"pointer"}
+              color={"gray.400"}
+            >
+              Contact
+            </Text>
+            <Text
+              alignSelf={"center"}
+              _hover={{ textDecoration: "underline" }}
+              cursor={"pointer"}
+              color={"gray.400"}
+            >
+              Terms
+            </Text>
+          </Flex>
         </VStack>
       ) : (
-        <>{children}</>
+        <Box overflowX={"hidden"}>{children}</Box>
       )}
     </>
   );

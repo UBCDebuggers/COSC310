@@ -138,3 +138,39 @@ def delete_reservations_for_user(userid : str) -> int:
     reservations = new_reservations
     save_all(reservations)
     return difference
+
+STATUS_LABELS = {
+    NOT_RETURNED: "On loan",
+    RETURNED: "Returned",
+    RETURNED_OVERDUE: "Returned overdue",
+    NOT_RETURNED_OVERDUE: "Overdue (not returned)",
+    CANCELLED: "Cancelled"
+}
+
+def format_reservation_status(reservation: BookReservation) -> str:
+    return STATUS_LABELS.get(reservation.status, "Unknown")
+
+def build_user_reservation_report(userid: str) -> List[dict]:
+    """Return a normalized view of a user's reservation history."""
+    reservations = get_reservations_by_userid(userid)
+    now = datetime.now(timezone.utc)
+    report = []
+
+    for reservation in reservations:
+        overdue = (
+            reservation.status in [RETURNED_OVERDUE, NOT_RETURNED_OVERDUE]
+            or (reservation.active and reservation.expiry_date < now)
+        )
+        report.append(
+            {
+                "reservation_id": reservation.reservation_id,
+                "isbn": reservation.isbn,
+                "reservation_date": reservation.reservation_date.isoformat(),
+                "expiry_date": reservation.expiry_date.isoformat(),
+                "status": format_reservation_status(reservation),
+                "active": reservation.active,
+                "penalty": "Overdue" if overdue else "None",
+            }
+        )
+
+    return report

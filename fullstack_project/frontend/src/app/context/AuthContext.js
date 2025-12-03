@@ -19,13 +19,28 @@ export const AuthProvider = ({ children }) => {
             const response = await axios.post('http://localhost:8000/auth/login', params, {
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded'},
             });
-            console.log('Login response:', response.data);
             axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
             localStorage.setItem('access_token', response.data.access_token);
             setUser(response.data.user);
-            router.push('/dashboard');
+            
+            const token = response.data.access_token;
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const isAdmin = payload.admin || false;
+            
+            console.log("Token payload:", payload);
+            console.log("Is admin:", isAdmin);
+            
+            router.push(isAdmin ? '/admindashboard' : '/dashboard');
         } catch (error) {
             console.error("Login failed:", error);
+            if (error.response) {
+                console.error("Response status:", error.response.status);
+                console.error("Response data:", error.response.data);
+            } else if (error.request) {
+                console.error("No response received:", error.request);
+            } else {
+                console.error("Error message:", error.message);
+            }
         }
     };
 

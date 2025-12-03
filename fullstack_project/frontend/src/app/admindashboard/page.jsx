@@ -377,55 +377,6 @@ const adminpage = () => {
         </HStack>
       </VStack>
 
-      <Chart.Root maxH="sm" chart={chart}>
-      <AreaChart data={chart.data}>
-        <CartesianGrid
-          stroke={chart.color("border")}
-          vertical={false}
-          strokeDasharray="3 3"
-        />
-        <XAxis
-          dataKey={chart.key("month")}
-          tickLine={false}
-          axisLine={false}
-          tickMargin={8}
-          tickFormatter={(value) => value.slice(0, 3)}
-        />
-        <YAxis tickLine={false} axisLine={false} />
-        <Tooltip
-          cursor={false}
-          animationDuration={100}
-          content={<Chart.Tooltip />}
-        />
-        <Legend content={<Chart.Legend />} />
-
-        {chart.series.map((item) => (
-          <defs key={item.name}>
-            <Chart.Gradient
-              id={`${item.name}-gradient`}
-              stops={[
-                { offset: "0%", color: item.color, opacity: 0.3 },
-                { offset: "100%", color: item.color, opacity: 0.05 },
-              ]}
-            />
-          </defs>
-        ))}
-
-        {chart.series.map((item) => (
-          <Area
-            key={item.name}
-            type="natural"
-            isAnimationActive={false}
-            dataKey={chart.key(item.name)}
-            fill={`url(#${item.name}-gradient)`}
-            stroke={chart.color(item.color)}
-            strokeWidth={2}
-            stackId="a"
-          />
-        ))}
-      </AreaChart>
-    </Chart.Root>
-
       <Box w="100%">
         <Text fontWeight="bold" fontSize={20} mb={4}>
           Loans by Expiry Date

@@ -372,7 +372,7 @@ const adminpage = () => {
           Admin Dashboard
         </Text>
         <HStack w="100%">
-          <input type="text" placeholder="Filter by User ID (e.g., user1)" value={filterUser} onChange={(e) => setFilterUser(e.target.value)} style={{ padding: "8px 12px", border: "1px solid #ccc", borderRadius: "4px", minWidth: "250px" }} />
+          <input type="text" placeholder="Filter by User ID (e.g., user1)" value={filterUser} onChange={(e) => setFilterUser(e.target.value)} style={{ padding: "8px 12px", border: "1px solid #ccc", borderRadius: "6px", minWidth: "250px" }} />
           {filterUser && <Button size="sm" onClick={() => setFilterUser("")}>Clear</Button>}
         </HStack>
       </VStack>
@@ -550,6 +550,20 @@ const adminpage = () => {
           </Chart.Root>
         </Box>
       </HStack>
+
+      <Button 
+        w="100%"
+        h="44px" 
+        bg="white"
+        color="gray.900"
+        fontWeight="600"
+        fontSize="md"
+        borderRadius="6px"
+        onClick={() => router.push('/penaltymanagement')}
+        _hover={{ bg: "gray.100" }}
+      >
+        Penalty Management
+      </Button>
     </VStack>
   )
 };

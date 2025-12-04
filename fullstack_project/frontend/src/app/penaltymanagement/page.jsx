@@ -8,6 +8,7 @@ import {
   Button,
   Text,
   createListCollection,
+  Center,
 } from "@chakra-ui/react";
 import {
   SelectContent,
@@ -165,14 +166,14 @@ const PenaltyManagement = () => {
   );
 
   return (
-    <VStack w="100%" spacing={8} p={10}>
-      {/* Header Section - Exact Admin Dashboard Style */}
-      <VStack w="100%" align="start" spacing={4} pb={6}>
+    <Center w="100%" minH="100vh">
+      <VStack>
+      <VStack maxW="900px" align="start" p={20} mb={-14}>
         <Text fontWeight="bold" fontSize="2xl">
           Penalty Management
         </Text>
         {selectedUser && (
-          <VStack spacing={3} alignItems="start" w="100%">
+          <VStack alignItems="start" w="100%">
             <Text color="gray.400" fontSize="sm" fontWeight="500">
               Selected User
             </Text>
@@ -212,8 +213,8 @@ const PenaltyManagement = () => {
       </VStack>
 
       {/* Main Content - Two Column Layout */}
-      <Box w="100%" mb={4}>
-        <Text fontWeight="bold" fontSize={20} mb={4}>
+      <Box w="100%">
+        <Text fontWeight="bold" fontSize={20} mb={5}>
           Add Penalty
         </Text>
 
@@ -455,7 +456,8 @@ const PenaltyManagement = () => {
           )}
         </Box>
       )}
-    </VStack>
+      </VStack>
+    </Center>
   );
 };
 

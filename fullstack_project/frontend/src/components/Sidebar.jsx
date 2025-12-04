@@ -358,7 +358,7 @@ const Sidebar = ({ children }) => {
               </Menu.Root>
             </Flex>
           </Flex>
-          <Flex direction="column" flex={1}>
+          <Flex direction="column" flex={1} w="100%">
             {children}
             <Spacer />
             <Flex

@@ -366,7 +366,7 @@ const adminpage = () => {
   });
 
   return (
-    <VStack w="100%" spacing={8} p={10}>
+    <VStack w="100%" spacing={8} p={6}>
       <VStack w="100%" align="start" spacing={4} pb={6} borderBottom="1px" borderColor="gray.200">
         <Text fontWeight="bold" fontSize={28}>
           Admin Dashboard
@@ -464,12 +464,12 @@ const adminpage = () => {
         </Chart.Root>
       </Box>
 
-      <HStack w="100%" spacing={8}>
+      <HStack w="100%" spacing={4}>
         <Box flex={1}>
           <Text fontWeight="bold" fontSize={20} mb={4}>
             Overdue Loans Trend
           </Text>
-          <Chart.Root maxH="md" chart={overdueChart}>
+          <Chart.Root maxH="lg" chart={overdueChart}>
             <LineChart data={overdueChartData}>
               <CartesianGrid stroke={overdueChart.color("border.muted")} vertical={false} strokeDasharray="3 3" />
               <XAxis dataKey="date" tickLine={false} axisLine={false} />
@@ -487,7 +487,7 @@ const adminpage = () => {
           <Text fontWeight="bold" fontSize={20} mb={4}>
             Most Borrowed Books
           </Text>
-          <Chart.Root maxH="md" chart={borrowedChart}>
+          <Chart.Root maxH="lg" chart={borrowedChart}>
             <AreaChart data={filterUser && mostBorrowedData.length > 0 ? mostBorrowedData.filter(item => item.userid === filterUser) : mostBorrowedData}>
               <CartesianGrid stroke={borrowedChart.color("border.muted")} vertical={false} strokeDasharray="3 3" />
               <XAxis dataKey="isbn" tickLine={false} axisLine={false} />
@@ -513,12 +513,12 @@ const adminpage = () => {
         </Box>
       </HStack>
 
-      <HStack w="100%" spacing={8}>
+      <HStack w="100%" spacing={4}>
         <Box flex={1}>
           <Text fontWeight="bold" fontSize={20} mb={4}>
             User Loan Distribution
           </Text>
-          <Chart.Root maxH="md" chart={userChart}>
+          <Chart.Root maxH="lg" chart={userChart}>
             <LineChart data={filterUser && userDistData.length > 0 ? userDistData.filter(item => item.userid === filterUser) : userDistData}>
               <CartesianGrid stroke={userChart.color("border.muted")} vertical={false} strokeDasharray="3 3" />
               <XAxis dataKey="userid" tickLine={false} axisLine={false} />
@@ -536,7 +536,7 @@ const adminpage = () => {
           <Text fontWeight="bold" fontSize={20} mb={4}>
             Active Penalties by User
           </Text>
-          <Chart.Root maxH="md" chart={penaltyChart}>
+          <Chart.Root maxH="lg" chart={penaltyChart}>
             <BarChart data={filterUser && penaltyChartData.length > 0 ? penaltyChartData.filter(item => item.userid === filterUser) : penaltyChartData}>
               <CartesianGrid stroke={penaltyChart.color("border.muted")} vertical={false} />
               <XAxis dataKey="userid" axisLine={false} tickLine={false} />
@@ -550,6 +550,21 @@ const adminpage = () => {
           </Chart.Root>
         </Box>
       </HStack>
+
+
+	<Button 
+        w="100%"
+        h="44px" 
+        bg="white"
+        color="gray.900"
+        fontWeight="600"
+        fontSize="md"
+        borderRadius="6px"
+        onClick={() => router.push('/penaltymanagement')}
+        _hover={{ bg: "gray.100" }}
+      >
+        Penalty Management
+      </Button>
     </VStack>
   )
 };

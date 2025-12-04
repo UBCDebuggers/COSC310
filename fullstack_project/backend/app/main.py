@@ -62,7 +62,7 @@ async def lifespan(app: FastAPI):
     )
     scheduler.add_job(
         analytics_refresh,
-        trigger=IntervalTrigger(minutes=5),
+        trigger=IntervalTrigger(minutes=30),
         id="refresh-03",
         replace_existing=True
     )

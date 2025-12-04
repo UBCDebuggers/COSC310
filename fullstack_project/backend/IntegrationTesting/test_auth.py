@@ -53,7 +53,7 @@ def test_login_success_returns_token(client, mock_auth):
     assert args[0].password == "secret"
     mock_auth["create_access_token"].assert_called_once()
     _, kwargs = mock_auth["create_access_token"].call_args
-    assert kwargs["data"] == {"sub": "user-1", "admin": False}
+    assert kwargs["data"] == {"sub": "user-1", "admin": False, 'email': 'user@example.com', 'username': 'tester'}
 
 
 def test_login_invalid_credentials_returns_unauthorized(client, mock_auth):

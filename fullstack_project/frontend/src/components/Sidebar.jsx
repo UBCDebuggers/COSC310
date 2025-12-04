@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useContext } from "react";
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import AuthContext from "@/app/context/AuthContext";
@@ -105,6 +105,7 @@ const Sidebar = ({ children }) => {
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = React.useContext(AuthContext);
+  const { user } = useContext(AuthContext);
 
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -118,6 +119,14 @@ const Sidebar = ({ children }) => {
   const [tempPublisherFilter, setTempPublisherFilter] = useState("");
   const [tempMinYearFilter, setTempMinYearFilter] = useState("");
   const [tempMaxYearFilter, setTempMaxYearFilter] = useState("");
+
+  const handleBookClick = (isbn) => {
+    router.push(`/book/${isbn}`);
+  };
+
+  const handleBack = () => {
+    router.back();
+  };
 
   const filteredBooks = React.useMemo(() => {
     return books.filter((b) =>
@@ -170,7 +179,14 @@ const Sidebar = ({ children }) => {
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [query, authorFilter, publisherFilter, minYearFilter, maxYearFilter]);
+  }, [
+    query,
+    authorFilter,
+    publisherFilter,
+    minYearFilter,
+    maxYearFilter,
+    user,
+  ]);
 
   return (
     <>
@@ -183,7 +199,12 @@ const Sidebar = ({ children }) => {
             borderBottomWidth={2}
             borderColor={"grey.300"}
           >
-            <Flex alignSelf={"center"}>
+            <Flex
+              alignSelf={"center"}
+              onClick={handleBack}
+              _hover={{ textDecoration: "underline", color: "gray.800" }}
+              cursor={"pointer"}
+            >
               <VscBook size={70} />
               <Text fontSize={"2xl"} fontWeight="bold" alignSelf={"center"}>
                 BookVerse
@@ -235,7 +256,11 @@ const Sidebar = ({ children }) => {
 
                     {!loading &&
                       books.map((item) => (
-                        <Combobox.Item key={item.value} item={item}>
+                        <Combobox.Item
+                          key={item.value}
+                          item={item}
+                          onClick={() => handleBookClick(item.value)}
+                        >
                           <Flex gap={2} align="center">
                             <img
                               src={item.img}
@@ -314,15 +339,19 @@ const Sidebar = ({ children }) => {
                     colorPalette={"blue"}
                     alignSelf={"center"}
                     cursor={"pointer"}
+                    disabled={!!user?.sub}
                   >
-                    <Avatar.Fallback name="Segun Adebayo" />
+                    <Avatar.Fallback name={user?.username} />
                     <Avatar.Image />
                   </Avatar.Root>
                 </Menu.Trigger>
                 <Portal>
                   <Menu.Positioner>
                     <Menu.Content>
-                      <Menu.Item value="account" onClick={() => router.push("/account")}>
+                      <Menu.Item
+                        value="account"
+                        onClick={() => router.push("/account")}
+                      >
                         <Flex
                           gap={2}
                           w={"full"}
@@ -333,7 +362,11 @@ const Sidebar = ({ children }) => {
                           <Text fontWeight={"bold"}>Account</Text>
                         </Flex>
                       </Menu.Item>
-                      <Menu.Item value="settings" justifyContent={"center"} onClick={() => router.push("/settings")}>
+                      <Menu.Item
+                        value="settings"
+                        justifyContent={"center"}
+                        onClick={() => router.push("/settings")}
+                      >
                         <Flex
                           gap={2}
                           w={"full"}

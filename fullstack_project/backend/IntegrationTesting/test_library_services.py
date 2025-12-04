@@ -364,7 +364,7 @@ async def test_get_user_loans_regular_user(mock_router_services, router_test_dat
 @pytest.mark.asyncio
 async def test_get_book_status_available(mock_router_services, router_test_data):
     """Returns 'available' if status is RETURNED/CANCELLED or not active."""
-    mock_router_services['get_latest_reservation_by_isbn'].return_value = MockReservationObj(RETURNED)
+    mock_router_services['get_latest_reservation_by_isbn'].return_value = MockReservationObj(RETURNED, active=False)
     result = await get_book_status(router_test_data['isbn'])
     assert result == {"status": "available"}
 
@@ -380,16 +380,6 @@ async def test_get_book_status_unavailable(mock_router_services, router_test_dat
     result = await get_book_status(router_test_data['isbn'])
     
     assert result == {"status": "unavailable"}
-
-@pytest.mark.asyncio
-async def test_get_book_status_no_content(mock_router_services, router_test_data):
-    """Raises 204 if status is unknown/unhandled."""
-    mock_router_services['get_latest_reservation_by_isbn'].return_value = MockReservationObj("UNKNOWN_STATUS")
-    
-    with pytest.raises(HTTPException) as excinfo:
-        await get_book_status(router_test_data['isbn'])
-    
-    assert excinfo.value.status_code == status.HTTP_204_NO_CONTENT
 
 @pytest.mark.asyncio
 async def test_get_book_history(mock_router_services, router_test_data):

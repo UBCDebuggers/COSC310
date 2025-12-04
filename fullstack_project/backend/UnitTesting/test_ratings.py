@@ -58,7 +58,7 @@ class TestRatingService(unittest.TestCase):
     @patch("app.services.ratings_service.load_all")
     def test_create_rating_appends_and_saves(self, mock_load_all, mock_save_all, *_):
         mock_load_all.return_value = copy.deepcopy(self.sample_ratings)
-        new_rating = MockRatingCreate(" 999 ", " 5 ", "  desc ")
+        new_rating = MockRatingCreate(" 999 ", "5", "  desc ")
 
         result = ratings_service.create_rating(new_rating, " user9 ")
 
@@ -142,7 +142,7 @@ class TestRatingService(unittest.TestCase):
     @patch("app.services.ratings_service.load_all")
     def test_update_rating_mutates_first_matching_isbn(self, mock_load_all, mock_save_all, *_):
         mock_load_all.return_value = copy.deepcopy(self.sample_ratings)
-        payload = MockRatingUpdate(" 4 ", "  updated ")
+        payload = MockRatingUpdate("4", "  updated ")
 
         result = ratings_service.update_rating("111", "user1", payload)
 

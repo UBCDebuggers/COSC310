@@ -80,6 +80,10 @@ const page = () => {
     fetchTopPicks();
   }, []);
 
+  const handleBookClick = (isbn) => {
+    router.push(`/book/${isbn}`);
+  };
+
   return (
     <VStack w="100vw" alignItems={"flex-start"} p={10}>
       <Text fontWeight={"bold"} fontSize={30}>
@@ -108,7 +112,11 @@ const page = () => {
           >
             <Carousel.ItemGroup>
               {topPicks.map((book, index) => (
-                <Carousel.Item key={index} index={index}>
+                <Carousel.Item
+                  key={index}
+                  index={index}
+                  onClick={() => handleBookClick(book.isbn)}
+                >
                   <Flex
                     w="100%"
                     h="20rem"
@@ -203,6 +211,7 @@ const page = () => {
                       height={"full"}
                       key={index}
                       cursor={"pointer"}
+                      onClick={() => handleBookClick(item.isbn)}
                     >
                       <img
                         src={item.img_url_l}

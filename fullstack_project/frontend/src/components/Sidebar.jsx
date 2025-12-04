@@ -29,7 +29,6 @@ import { FiSearch } from "react-icons/fi";
 import { VscBook } from "react-icons/vsc";
 import { BiSliderAlt } from "react-icons/bi";
 import { CgArrowLongRight, CgClose } from "react-icons/cg";
-import AuthContext from "../app/context/AuthContext";
 
 const FilterMenu = ({
   tempAuthorFilter,

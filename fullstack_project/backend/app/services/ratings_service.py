@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from statistics import mean
 from typing import List
 from fastapi import HTTPException
@@ -12,7 +13,7 @@ def create_rating(newRating: RatingCreate, userid : str) -> Rating:
     
     new_record = Rating(userid = userid.strip(),
                       isbn = newRating.isbn.strip(),
-                      rating = newRating.rating.strip(),
+                      rating = newRating.rating,
                       description= newRating.description.strip()
                       )
     ratings.append(new_record.model_dump())
@@ -24,7 +25,11 @@ def get_ratings_by_isbn(rating_isbn: str) -> List[Rating]:
     found = []
     for rating in ratings:
         if rating.get('isbn') == rating_isbn:
-            found.append(Rating(**rating))
+            found.append(Rating(userid= rating.get('userid'),
+                                isbn= rating.get('isbn'),
+                                rating= rating.get('rating'),
+                                timestamp= safe_timestamp(rating.get('timestamp')),
+                                description= rating.get('description')))
     if len(found) == 0:
         raise HTTPException(status_code=404, detail=f"Rating for ISBN '{rating_isbn}' not found")
     return found
@@ -45,7 +50,7 @@ def update_rating(rating_isbn: str, userid: str, ratingUpdate : RatingUpdate) ->
         if rating.get("isbn") == rating_isbn:
             updated = Rating(isbn = rating_isbn,
                       userid = userid,
-                      rating = ratingUpdate.rating.strip(),
+                      rating = ratingUpdate.rating,
                       description= ratingUpdate.description.strip()
                       )
             ratings[userid] = updated.model_dump()
@@ -112,3 +117,8 @@ def get_top_rated_books(n: int) -> List[dict]:
             "avg_rating": data['avg']
         })
     return result
+
+def safe_timestamp(value):
+    if not value or value.strip() == "":
+        return datetime.now(timezone.utc)
+    return value

@@ -19,12 +19,12 @@ def post_rating(payload: RatingCreate, token_data: dict = Depends(verify_access_
 
 #Gets all ratings belonging to a book
 @router.get("/isbn/{isbn}", response_model=List[Rating])
-def get_ratings_by_isbn(isbn: str):
+def ratings_by_isbn(isbn: str):
     return get_ratings_by_isbn(isbn)
 
 #Gets all ratings belonging to a user
 @router.get("/userid/{userid}", response_model=List[Rating])
-def get_rating_by_userid(userid: str):
+def rating_by_userid(userid: str):
     return get_ratings_by_userid(userid)
 
 #Updates a user's rating

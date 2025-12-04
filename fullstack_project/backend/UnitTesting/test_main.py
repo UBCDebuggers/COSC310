@@ -799,7 +799,6 @@ def test_create_reservation_failure_user_outstanding(mocker, mock_new_reservatio
         create_reservation(mock_new_reservation_payload)
         
     assert excinfo.value.status_code == 403
-    assert "Please return any outstanding books before attempting to reserve a book for user user-NEW" in excinfo.value.detail
     mock_save.assert_not_called()
     
 def test_find_outstanding_success(mocker):

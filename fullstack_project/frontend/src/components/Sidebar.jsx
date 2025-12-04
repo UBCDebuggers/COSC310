@@ -1,7 +1,7 @@
 "use client";
-import React from "react";
+import React, { useContext } from "react";
 import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useColorMode } from "./ui/color-mode";
 import {
   ClientOnly,
@@ -28,6 +28,7 @@ import { FiSearch } from "react-icons/fi";
 import { VscBook } from "react-icons/vsc";
 import { BiSliderAlt } from "react-icons/bi";
 import { CgArrowLongRight, CgClose } from "react-icons/cg";
+import AuthContext from "../app/context/AuthContext";
 
 const FilterMenu = ({
   tempAuthorFilter,
@@ -102,6 +103,8 @@ const FilterMenu = ({
 const Sidebar = ({ children }) => {
   const { toggleColorMode, colorMode } = useColorMode();
   const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useContext(AuthContext);
 
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -115,6 +118,14 @@ const Sidebar = ({ children }) => {
   const [tempPublisherFilter, setTempPublisherFilter] = useState("");
   const [tempMinYearFilter, setTempMinYearFilter] = useState("");
   const [tempMaxYearFilter, setTempMaxYearFilter] = useState("");
+
+  const handleBookClick = (isbn) => {
+    router.push(`/book/${isbn}`);
+  };
+
+  const handleBack = () => {
+    router.back();
+  };
 
   const filteredBooks = React.useMemo(() => {
     return books.filter((b) =>
@@ -167,7 +178,14 @@ const Sidebar = ({ children }) => {
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [query, authorFilter, publisherFilter, minYearFilter, maxYearFilter]);
+  }, [
+    query,
+    authorFilter,
+    publisherFilter,
+    minYearFilter,
+    maxYearFilter,
+    user,
+  ]);
 
   return (
     <>
@@ -180,7 +198,12 @@ const Sidebar = ({ children }) => {
             borderBottomWidth={2}
             borderColor={"grey.300"}
           >
-            <Flex alignSelf={"center"}>
+            <Flex
+              alignSelf={"center"}
+              onClick={handleBack}
+              _hover={{ textDecoration: "underline", color: "gray.800" }}
+              cursor={"pointer"}
+            >
               <VscBook size={70} />
               <Text fontSize={"2xl"} fontWeight="bold" alignSelf={"center"}>
                 BookVerse
@@ -232,7 +255,11 @@ const Sidebar = ({ children }) => {
 
                     {!loading &&
                       books.map((item) => (
-                        <Combobox.Item key={item.value} item={item}>
+                        <Combobox.Item
+                          key={item.value}
+                          item={item}
+                          onClick={() => handleBookClick(item.value)}
+                        >
                           <Flex gap={2} align="center">
                             <img
                               src={item.img}
@@ -311,8 +338,9 @@ const Sidebar = ({ children }) => {
                     colorPalette={"blue"}
                     alignSelf={"center"}
                     cursor={"pointer"}
+                    disabled={!!user?.sub}
                   >
-                    <Avatar.Fallback name="Segun Adebayo" />
+                    <Avatar.Fallback name={user?.username} />
                     <Avatar.Image />
                   </Avatar.Root>
                 </Menu.Trigger>

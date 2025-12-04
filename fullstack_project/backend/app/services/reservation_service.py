@@ -66,8 +66,11 @@ def create_reservation(newReservation : BookReservationCreate) -> BookReservatio
         if user.status in [NOT_RETURNED, NOT_RETURNED_OVERDUE] or (user.expiry_date < now and user.active):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     except HTTPException as e:
-        if e.status_code == status.HTTP_403_FORBIDDEN:
+        if e.status_code == status.HTTP_402_PAYMENT_REQUIRED:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail= f"Please return any outstanding books before attempting to reserve a book for user {user.userid}")
+        if e.status_code != status.HTTP_404_NOT_FOUND:
+            raise e
+    
     new_record = BookReservation(isbn= newReservation.isbn,
                                  userid= newReservation.userid,
                                  expiry_date= newReservation.expiry_date)

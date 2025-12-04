@@ -10,7 +10,7 @@ from app.services.library_service import borrow_book, return_book
 from app.services.penalties_service import create_penalty, deactivate_penalty, delete_penalties_for_user, delete_penalty, get_penalties, get_penalties_for_user, get_penalty, reactivate_penalty, update_penalty
 from app.services.reservation_service import get_reservations_by_userid, update_reservation, get_latest_reservation_by_isbn, get_reservations_by_isbn, find_outstanding
 
-router = APIRouter(prefix="/library", tags=["library"], dependencies= [Depends(verify_access_token)])
+router = APIRouter(prefix="/library", tags=["library"])
 
 #allows for a user to borrow a book and admin to accept a reservation
 @router.post("/borrow", status_code= status.HTTP_200_OK, response_model=dict)
@@ -38,11 +38,9 @@ async def get_user_loans(userid : str, current_user : dict = Depends(verify_acce
 @router.get("/bookstatus/{isbn}", status_code= status.HTTP_200_OK, response_model=dict)
 async def get_book_status(isbn : str):
     reservation = get_latest_reservation_by_isbn(isbn)
-    if reservation.status in [RETURNED, RETURNED_OVERDUE, CANCELLED] or not reservation.active:
+    if (reservation.status in [RETURNED, RETURNED_OVERDUE, CANCELLED] and not reservation.active) or not reservation.active:
         return {"status" : "available"}
-    elif reservation.status in [NOT_RETURNED, NOT_RETURNED_OVERDUE]:
-        return {"status" : "unavailable"}
-    raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
+    return {"status" : "unavailable"}
 
 #gets a books reservation history
 @router.get("/bookhistory/{isbn}", status_code= status.HTTP_200_OK, response_model=List[BookReservation])

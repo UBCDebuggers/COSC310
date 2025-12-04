@@ -1,7 +1,8 @@
 "use client";
 import React from "react";
 import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import AuthContext from "@/app/context/AuthContext";
 import { useColorMode } from "./ui/color-mode";
 import {
   ClientOnly,
@@ -102,6 +103,8 @@ const FilterMenu = ({
 const Sidebar = ({ children }) => {
   const { toggleColorMode, colorMode } = useColorMode();
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = React.useContext(AuthContext);
 
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -319,7 +322,7 @@ const Sidebar = ({ children }) => {
                 <Portal>
                   <Menu.Positioner>
                     <Menu.Content>
-                      <Menu.Item value="account">
+                      <Menu.Item value="account" onClick={() => router.push("/account")}>
                         <Flex
                           gap={2}
                           w={"full"}
@@ -330,7 +333,7 @@ const Sidebar = ({ children }) => {
                           <Text fontWeight={"bold"}>Account</Text>
                         </Flex>
                       </Menu.Item>
-                      <Menu.Item value="settings" justifyContent={"center"}>
+                      <Menu.Item value="settings" justifyContent={"center"} onClick={() => router.push("/settings")}>
                         <Flex
                           gap={2}
                           w={"full"}
@@ -341,7 +344,7 @@ const Sidebar = ({ children }) => {
                           <Text fontWeight={"bold"}>Settings</Text>
                         </Flex>
                       </Menu.Item>
-                      <Menu.Item value="logout">
+                      <Menu.Item value="logout" onClick={logout}>
                         <Flex
                           gap={2}
                           w={"full"}

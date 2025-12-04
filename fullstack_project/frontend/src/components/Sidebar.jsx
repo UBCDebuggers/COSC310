@@ -401,42 +401,48 @@ const Sidebar = ({ children }) => {
               </Menu.Root>
             </Flex>
           </Flex>
-          {children}
-          <Flex
-            justifyContent={"center"}
-            p={4}
-            gap={5}
-            w={"100vw"}
-            borderColor={"grey.300"}
-          >
-            <Flex gap={2}>
-              <Box
+          <Flex direction="column" flex={1} w="100%">
+            {children}
+            <Spacer />
+            <Flex
+              justifyContent={"center"}
+              p={4}
+              gap={5}
+              w={"100%"}
+              borderColor={"grey.300"}
+              borderTop="1px"
+              mt={10}
+              bg={{base: "white", _dark: "gray.950"}}
+            >
+              <Flex gap={2}>
+                <Box
+                  cursor={"pointer"}
+                  _hover={{ color: "gray.800" }}
+                  color={"gray.400"}
+                >
+                  <VscBook size={20} />
+                </Box>
+                <Text alignSelf={"center"} color={"gray.400"}>
+                  © 2025 UBCDebuggers, org.
+                </Text>
+              </Flex>
+              <Text
+                alignSelf={"center"}
+                _hover={{ textDecoration: "underline" }}
                 cursor={"pointer"}
-                _hover={{ color: "gray.800" }}
                 color={"gray.400"}
               >
-                <VscBook size={20} />
-              </Box>
-              <Text alignSelf={"center"} color={"gray.400"}>
-                © 2025 UBCDebuggers, org.
+                Contact
+              </Text>
+              <Text
+                alignSelf={"center"}
+                _hover={{ textDecoration: "underline" }}
+                cursor={"pointer"}
+                color={"gray.400"}
+              >
+                Terms
               </Text>
             </Flex>
-            <Text
-              alignSelf={"center"}
-              _hover={{ textDecoration: "underline" }}
-              cursor={"pointer"}
-              color={"gray.400"}
-            >
-              Contact
-            </Text>
-            <Text
-              alignSelf={"center"}
-              _hover={{ textDecoration: "underline" }}
-              cursor={"pointer"}
-              color={"gray.400"}
-            >
-              Terms
-            </Text>
           </Flex>
         </VStack>
       ) : (

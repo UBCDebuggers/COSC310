@@ -20,9 +20,11 @@ def post_user(payload: UserCreate, token_data : dict = Depends(verify_access_tok
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     return create_user(payload)
 
-#gets a user by userid
+#gets a user by userid , changed it so admins only can read user profiles.
 @router.get("/get/{id}", response_model=User)
-def get_user(id: str):
+def get_user(id: str, token_data: dict = Depends(verify_access_token)):
+    if not token_data['is_admin']:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     return get_user_by_id(id)
 
 #Updates a users profile
@@ -31,6 +33,7 @@ def put_user(payload: UserUpdate, token_data : dict = Depends(verify_access_toke
     if not token_data['is_admin']:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     return update_user(token_data['userid'], payload)
+
 
 #deletes a user using userid
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)

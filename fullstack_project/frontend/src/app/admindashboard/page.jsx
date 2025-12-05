@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Text, VStack, HStack, Button, FileUpload, Center } from "@chakra-ui/react";
+import { Box, Text, VStack, HStack, Button, FileUpload, Center, Input } from "@chakra-ui/react";
 import { HiUpload } from "react-icons/hi";
 import { Chart, useChart } from "@chakra-ui/charts"
 import { Area, AreaChart, BarChart, Bar, Line, LineChart, CartesianGrid, Legend, Tooltip, XAxis, YAxis } from "recharts"
@@ -79,6 +79,21 @@ const parseCSVData = (text) => {
 
 const adminpage = () => {
   const router = useRouter();
+  
+  // Color palette that works in both light and dark modes using Chakra's token system
+  const colors = {
+    containerBg: { base: "white", _dark: "#0f1419" },
+    containerBorder: { base: "gray.200", _dark: "#2d3748" },
+    inputBg: { base: "gray.50", _dark: "#2d3748" },
+    inputBorder: { base: "gray.300", _dark: "#4a5568" },
+    inputText: { base: "gray.900", _dark: "#e2e8f0" },
+    labelText: { base: "gray.600", _dark: "gray.300" },
+    placeholderText: { base: "gray.400", _dark: "#708090" },
+    buttonText: { base: "gray.600", _dark: "#a0aec0" },
+    buttonTextHover: { base: "gray.700", _dark: "#cbd5e0" },
+    headerText: { base: "gray.900", _dark: "white" },
+    subheaderText: { base: "gray.700", _dark: "gray.200" }
+  };
   const [topPicks, setTopPicks] = useState([]);
   const [popularBooks, setPopularBooks] = useState([]);
   const [engagingBooks, setEngagingBooks] = useState([]);
@@ -99,6 +114,13 @@ const adminpage = () => {
   const [filterUser, setFilterUser] = useState("");
   const [loansUploadedFile, setLoansUploadedFile] = useState(null);
   const [loansUploadedData, setLoansUploadedData] = useState([]);
+  const [checkoutUserid, setCheckoutUserid] = useState("");
+  const [checkoutIsbn, setCheckoutIsbn] = useState("");
+  const [checkoutStatus, setCheckoutStatus] = useState("");
+  const [checkoutMessage, setCheckoutMessage] = useState("");
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [pendingCheckouts, setPendingCheckouts] = useState([]);
+  const [confirmedCheckouts, setConfirmedCheckouts] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -159,6 +181,32 @@ const adminpage = () => {
         setUserLoans(userItems || []);
         setOutstandingLoans(outstandingItems || []);
         setPenalties(penaltyItems || []);
+
+        // Populate pending checkouts from outstanding loans with book titles
+        if (outstandingItems && outstandingItems.length > 0) {
+          const pendingWithTitles = await Promise.all(
+            outstandingItems.map(async (loan) => {
+              try {
+                const bookRes = await fetch(`http://localhost:8000/books/${encodeURIComponent(loan.isbn)}`);
+                const bookData = bookRes.ok ? await bookRes.json() : {};
+                return {
+                  userid: loan.userid,
+                  isbn: loan.isbn,
+                  title: bookData.title || "Unknown Title",
+                  timestamp: new Date(loan.reservation_date).toLocaleString(),
+                };
+              } catch (e) {
+                return {
+                  userid: loan.userid,
+                  isbn: loan.isbn,
+                  title: "Unknown Title",
+                  timestamp: new Date(loan.reservation_date).toLocaleString(),
+                };
+              }
+            })
+          );
+          setPendingCheckouts(pendingWithTitles);
+        }
 
         // Only update chart data if API returned actual data
         if (outstandingItems && outstandingItems.length > 0) {
@@ -279,6 +327,67 @@ const adminpage = () => {
     setLoansUploadedData([]);
     const fileInput = document.getElementById('loansFileInput');
     if (fileInput) fileInput.value = '';
+  };
+
+  const handleConfirmCheckout = async () => {
+    if (!checkoutUserid.trim() || !checkoutIsbn.trim()) {
+      setCheckoutMessage("Please enter both User ID and ISBN");
+      return;
+    }
+
+    setCheckoutLoading(true);
+    setCheckoutMessage("");
+    
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`http://localhost:8000/library/confirmcheckout?userid=${encodeURIComponent(checkoutUserid)}&isbn=${encodeURIComponent(checkoutIsbn)}&status_code_val=${checkoutStatus}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setCheckoutMessage(`Error: ${errorData.detail || 'Failed to confirm checkout'}`);
+      } else {
+        const data = await response.json();
+        setCheckoutMessage(`Success! ${data.message}`);
+        
+        // Find the pending checkout that was just confirmed
+        const confirmedCheckout = pendingCheckouts.find(
+          c => c.userid === checkoutUserid && c.isbn === checkoutIsbn
+        );
+        
+        // Remove from pending checkouts
+        if (confirmedCheckout) {
+          setPendingCheckouts(pendingCheckouts.filter(
+            c => !(c.userid === checkoutUserid && c.isbn === checkoutIsbn)
+          ));
+          
+          // Add to confirmed checkouts with the selected status
+          const statusLabel = ["Not Returned", "Returned", "Returned Overdue", "Not Returned Overdue", "Cancelled"][checkoutStatus];
+          const newConfirmation = {
+            userid: checkoutUserid,
+            isbn: checkoutIsbn,
+            title: confirmedCheckout.title,
+            status: statusLabel,
+            timestamp: new Date().toLocaleString()
+          };
+          setConfirmedCheckouts([newConfirmation, ...confirmedCheckouts]);
+        }
+        
+        // Clear form
+        setCheckoutUserid("");
+        setCheckoutIsbn("");
+        setCheckoutStatus(0);
+      }
+    } catch (error) {
+      setCheckoutMessage(`Error: ${error.message}`);
+    } finally {
+      setCheckoutLoading(false);
+    }
   };
 
   const getLoansChartData = () => {
@@ -552,16 +661,252 @@ const adminpage = () => {
       </HStack>
 
 
-	<Button 
+      <Box w="100%" mt={10} p={8} bg={{base: "white", _dark: "#0f1419"}} border="1px solid" borderColor={{base: "gray.200", _dark: "#2d3748"}} borderRadius="8px">
+        <Text fontWeight="bold" fontSize={20} mb={8} color={{base: "gray.900", _dark: "white"}}>
+          Book Checkout Confirmation
+        </Text>
+        
+        <HStack w="100%" spacing={20} align="flex-start">
+          {/* Left Column - Confirmation Form */}
+          <Box flex={1} mr={4}>
+            <Text fontWeight="600" fontSize={16} mb={6} color={colors.subheaderText}>
+              Process New Checkout
+            </Text>
+            <VStack w="100%" spacing={8} align="start">
+              <Box w="100%" mb={2}>
+                <Text fontWeight="500" mb={2} fontSize={13} color={colors.labelText}>User ID</Text>
+                <Input
+                  placeholder="Enter user ID"
+                  value={checkoutUserid}
+                  onChange={(e) => setCheckoutUserid(e.target.value)}
+                  bg={colors.inputBg}
+                  borderColor={colors.inputBorder}
+                  color={colors.inputText}
+                  _placeholder={{ color: colors.placeholderText }}
+                  borderRadius="6px"
+                  fontSize="14px"
+                  p="11px 14px"
+                  border="1px solid"
+                  _focus={{
+                    borderColor: colors.inputBorder,
+                    boxShadow: "none"
+                  }}
+                />
+              </Box>
+
+              <Box w="100%" mb={2}>
+                <Text fontWeight="500" mb={2} fontSize={13} color={colors.labelText}>ISBN</Text>
+                <Input
+                  placeholder="Enter book ISBN"
+                  value={checkoutIsbn}
+                  onChange={(e) => setCheckoutIsbn(e.target.value)}
+                  bg={colors.inputBg}
+                  borderColor={colors.inputBorder}
+                  color={colors.inputText}
+                  _placeholder={{ color: colors.placeholderText }}
+                  borderRadius="6px"
+                  fontSize="14px"
+                  p="11px 14px"
+                  border="1px solid"
+                  _focus={{
+                    borderColor: colors.inputBorder,
+                    boxShadow: "none"
+                  }}
+                />
+              </Box>
+
+              <Box w="100%" mb={2}>
+                <Text fontWeight="500" mb={2} fontSize={13} color={colors.labelText}>Status</Text>
+                <Box
+                  as="select"
+                  w="100%"
+                  value={checkoutStatus === "" ? "" : checkoutStatus.toString()}
+                  onChange={(e) => setCheckoutStatus(e.target.value === "" ? "" : parseInt(e.target.value))}
+                  bg={colors.inputBg}
+                  borderColor={colors.inputBorder}
+                  color={colors.inputText}
+                  borderRadius="6px"
+                  fontSize="14px"
+                  p="11px 14px"
+                  border="1px solid"
+                  _focus={{
+                    borderColor: colors.inputBorder,
+                    boxShadow: "none"
+                  }}
+                  appearance="none"
+                  paddingRight="32px"
+                  backgroundImage={`url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a0aec0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`}
+                  backgroundRepeat="no-repeat"
+                  backgroundPosition="right 8px center"
+                  backgroundSize="20px"
+                  backgroundAttachment="scroll"
+                >
+                  <option value="">Select a status</option>
+                  <option value="0">Not Returned</option>
+                  <option value="1">Returned</option>
+                  <option value="2">Returned Overdue</option>
+                  <option value="3">Not Returned Overdue</option>
+                  <option value="4">Cancelled</option>
+                </Box>
+              </Box>
+
+              <Button
+                onClick={handleConfirmCheckout}
+                isDisabled={checkoutLoading}
+                w="100%"
+                h="40px"
+                border="1px solid"
+                borderColor={colors.buttonText}
+                bg="transparent"
+                color={colors.buttonText}
+                borderRadius="6px"
+                fontSize="16px"
+                fontWeight="500"
+                transition="all 0.2s ease"
+                _hover={{
+                  borderColor: colors.buttonTextHover,
+                  color: colors.buttonTextHover,
+                  _disabled: {
+                    borderColor: colors.buttonText,
+                    color: colors.buttonText,
+                    opacity: 0.5
+                  }
+                }}
+                _disabled={{
+                  opacity: 0.5,
+                  cursor: "not-allowed"
+                }}
+              >
+                {checkoutLoading ? "Confirming..." : "Confirm Checkout"}
+              </Button>
+
+              {checkoutMessage && (
+                <Box
+                  w="100%"
+                  p={3}
+                  borderRadius="6px"
+                  bg={checkoutMessage.includes("Error") ? "#5f1f1f" : "#1e3a2c"}
+                  color={checkoutMessage.includes("Error") ? "#fca5a5" : "#86efac"}
+                  fontSize={13}
+                  border={`1px solid ${checkoutMessage.includes("Error") ? "#dc2626" : "#22c55e"}`}
+                >
+                  {checkoutMessage}
+                </Box>
+              )}
+            </VStack>
+          </Box>
+
+          {/* Right Column - Pending Checkouts */}
+          <Box flex={1}>
+            <Text fontWeight="600" fontSize={16} mb={6} color={colors.subheaderText}>
+              Pending Checkouts ({pendingCheckouts.length})
+            </Text>
+            <VStack w="100%" spacing={3} align="stretch" maxH="380px" overflowY="auto" pr={2}>
+              {pendingCheckouts.length > 0 ? (
+                pendingCheckouts.map((checkout, idx) => (
+                  <Box
+                    key={idx}
+                    p={4}
+                    border="1px solid"
+                    borderColor={colors.inputBorder}
+                    borderRadius="6px"
+                    bg={colors.inputBg}
+                    _hover={{ bg: { base: "gray.100", _dark: "#374151" }, cursor: "pointer" }}
+                    onClick={() => {
+                      setCheckoutUserid(checkout.userid);
+                      setCheckoutIsbn(checkout.isbn);
+                    }}
+                  >
+                    <HStack w="100%" justify="space-between" mb={2}>
+                      <Text fontWeight="600" fontSize={13} color={colors.inputText}>{checkout.userid}</Text>
+                      <Text fontSize={11} color={colors.labelText}>{checkout.timestamp}</Text>
+                    </HStack>
+                    <Text fontSize={12} color={colors.labelText}>{checkout.title}</Text>
+                    <Text fontSize={11} color={colors.placeholderText} mt={2}>ISBN: {checkout.isbn}</Text>
+                  </Box>
+                ))
+              ) : (
+                <Text color={colors.labelText} fontSize={13}>No pending checkouts</Text>
+              )}
+            </VStack>
+          </Box>
+        </HStack>
+
+        {/* Bottom Section - Confirmed Checkouts History */}
+        <Box mt={10} pt={8} borderTop="1px solid" borderTopColor={colors.inputBorder}>
+          <Text fontWeight="600" fontSize={16} mb={6} color={colors.subheaderText}>
+            Recent Confirmations ({confirmedCheckouts.length})
+          </Text>
+          <VStack w="100%" spacing={3} align="stretch" maxH="320px" overflowY="auto">
+            {confirmedCheckouts.map((checkout, idx) => {
+              const bgColor = checkout.status === "Returned" 
+                ? { base: "#dcf5e3", _dark: "#1e3a2c" }
+                : checkout.status === "Returned Overdue" 
+                ? { base: "#ffeaa7", _dark: "#3f3018" }
+                : { base: "#ffd3d3", _dark: "#3a1f1f" };
+              
+              const textColor = checkout.status === "Returned" 
+                ? { base: "#22c55e", _dark: "#86efac" }
+                : checkout.status === "Returned Overdue" 
+                ? { base: "#f59e0b", _dark: "#fbbf24" }
+                : { base: "#dc2626", _dark: "#fca5a5" };
+              
+              const borderColor = checkout.status === "Returned" 
+                ? { base: "#86efac", _dark: "#22c55e" }
+                : checkout.status === "Returned Overdue" 
+                ? { base: "#fbbf24", _dark: "#f59e0b" }
+                : { base: "#fca5a5", _dark: "#dc2626" };
+              
+              return (
+                <Box
+                  key={idx}
+                  p={4}
+                  border="1px solid"
+                  borderColor={colors.inputBorder}
+                  borderRadius="6px"
+                  bg={bgColor}
+                >
+                  <HStack w="100%" justify="space-between">
+                    <Box flex={1}>
+                      <Text fontWeight="600" fontSize={13} color={colors.inputText}>{checkout.userid}</Text>
+                      <Text fontSize={12} color={colors.labelText}>{checkout.title}</Text>
+                      <Text fontSize={11} color={colors.placeholderText} mt={2}>ISBN: {checkout.isbn}</Text>
+                    </Box>
+                    <Box textAlign="right">
+                      <Text
+                        fontSize={11}
+                        fontWeight="600"
+                        color={textColor}
+                        px={3}
+                        py={1}
+                        borderRadius="4px"
+                        border="1px solid"
+                        borderColor={borderColor}
+                        mb={2}
+                      >
+                        {checkout.status}
+                      </Text>
+                      <Text fontSize={11} color={colors.placeholderText}>{checkout.timestamp}</Text>
+                    </Box>
+                  </HStack>
+                </Box>
+              );
+            })}
+          </VStack>
+        </Box>
+      </Box>
+
+      <Button
         w="100%"
         h="44px" 
-        bg="white"
-        color="gray.900"
+        bg={{ base: "black", _dark: "white" }}
+        color={{ base: "white", _dark: "gray.900" }}
         fontWeight="600"
         fontSize="md"
         borderRadius="6px"
+        mt={10}
         onClick={() => router.push('/penaltymanagement')}
-        _hover={{ bg: "gray.100" }}
+        _hover={{ bg: { base: "gray.800", _dark: "gray.100" } }}
       >
         Penalty Management
       </Button>

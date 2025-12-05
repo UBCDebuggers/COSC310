@@ -110,3 +110,16 @@ def get_active_waitlists() -> List:
     waitlists = load_all()
     unique_isbns = {waitlist["isbn"] for waitlist in waitlists}
     return list(unique_isbns)
+
+#Subtracts all waitlist values by 1
+def subtract_waitlists(isbn : str) -> None:
+    waitlists = load_all()
+    for idx, waitlist in enumerate(waitlists):
+        book_isbn = waitlist.get('isbn')
+        if book_isbn != isbn:
+            continue
+        updated = WaitList(isbn= book_isbn, userid= waitlist.get('userid'),
+                 timestamp= waitlist.get('timestamp'), position= (int(waitlist.get('position') - 1)))
+        waitlists[idx] = updated
+    return
+                 

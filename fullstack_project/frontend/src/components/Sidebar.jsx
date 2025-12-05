@@ -377,7 +377,13 @@ const Sidebar = ({ children }) => {
                           <Text fontWeight={"bold"}>Settings</Text>
                         </Flex>
                       </Menu.Item>
-                      <Menu.Item value="logout" onClick={logout}>
+                      <Menu.Item
+                        value="logout"
+                        onClick={() => {
+                          logout;
+                          router;
+                        }}
+                      >
                         <Flex
                           gap={2}
                           w={"full"}
@@ -388,6 +394,7 @@ const Sidebar = ({ children }) => {
                           <Text fontWeight={"bold"}>Logout</Text>
                         </Flex>
                       </Menu.Item>
+                      <Menu.Item></Menu.Item>
                     </Menu.Content>
                   </Menu.Positioner>
                 </Portal>

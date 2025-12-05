@@ -268,6 +268,7 @@ const page = () => {
                       height={"full"}
                       key={index}
                       cursor={"pointer"}
+                      onClick={() => handleBookClick(item.isbn)}
                     >
                       <img
                         src={item.img_url_l}

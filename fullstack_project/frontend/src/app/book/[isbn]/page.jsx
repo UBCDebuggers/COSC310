@@ -107,6 +107,7 @@ const RatingsList = React.memo(function RatingsList({ ratings }) {
           userid={rating.userid}
           desc={rating.description}
           rating={rating.rating}
+          time={rating.timestamp}
         />
       ))}
     </>
@@ -151,15 +152,13 @@ const Page = () => {
 
     const fetchData = async () => {
       try {
-        const [bookRes, ratingsJson, reserveJson, watchlistJson] =
+        const [bookRes, ratingsJson, resData, watchlistJson] =
           await Promise.all([
             fetch(`http://localhost:8000/books/${isbn}`),
             fetch(`http://localhost:8000/ratings/isbn/${isbn}`).then((r) =>
               r.ok ? r.json() : []
             ),
-            fetch(`http://localhost:8000/library/bookstatus/${isbn}`).then(
-              (r) => (r) => r.text().then((t) => (t ? JSON.parse(t) : {}))
-            ),
+            fetch(`http://localhost:8000/library/bookstatus/${isbn}`),
             user?.access_token
               ? axios
                   .get("http://localhost:8000/watchlist", {
@@ -169,13 +168,19 @@ const Page = () => {
               : [],
           ]);
 
+        if (resData.ok) {
+          const reserveJson = await resData.json();
+          setReserved(reserveJson.status === "available");
+        } else {
+          setReserved(true);
+        }
+
         if (!bookRes.ok) throw new Error(`Book fetch failed ${bookRes.status}`);
 
         const bookData = await bookRes.json();
 
         setBook(bookData);
         setRatings(ratingsJson);
-        setReserved(reserveJson.status === "available");
 
         setAddedToWatchlist(
           Array.isArray(watchlistJson) &&
@@ -358,7 +363,7 @@ const Page = () => {
                   onClick={() => addToWatchlist(book.isbn)}
                   alignSelf={"flex-start"}
                 >
-                  {addedToWatchlist ? "Added" : "Add to Watchlist"}
+                  {addedToWatchlist ? "Added to Watchlist" : "Add to Watchlist"}
                   {addedToWatchlist ? <IoMdCheckmark /> : <MdAdd />}
                 </IconButton>
               </>
@@ -419,7 +424,14 @@ const Page = () => {
 
               <Dialog.Footer>
                 {watchlistDialogStatus && (
-                  <Button colorPalette="green">Open Watchlist</Button>
+                  <Button
+                    colorPalette="green"
+                    onClick={() => {
+                      router.push("/watchlist");
+                    }}
+                  >
+                    Open Watchlist
+                  </Button>
                 )}
                 <Dialog.CloseTrigger asChild>
                   <Button variant="ghost" colorPalette="red">

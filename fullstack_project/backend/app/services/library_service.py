@@ -3,7 +3,7 @@ from app.schemas.reservation import RETURNED, RETURNED_OVERDUE, BookReservationC
 from app.schemas.penalties import LIMITED_ACTIONS
 from app.schemas.waitlist import WaitListCreate
 from app.services.reservation_service import create_reservation, update_reservation, get_latest_reservation_by_isbn
-from app.services.waitlist_service import create_waitlist, get_waitlists_for_books, get_specific_waitlist, delete_specific_waitlist
+from app.services.waitlist_service import create_waitlist, get_waitlists_for_books, get_specific_waitlist, delete_specific_waitlist, subtract_waitlists
 from app.services.penalties_service import get_penalties_for_user
 from fastapi import HTTPException, status
 
@@ -63,6 +63,7 @@ def return_book(userid : str, isbn : str) -> dict:
                                         status= RETURNED_OVERDUE if is_overdue else RETURNED,
                                         active= False)
     update_reservation(reservation.reservation_id, new_record)
+    subtract_waitlists(isbn)
     return {"message": "Book successfully returned!"}
 
 def check_restrictions(user_id : str, error : str) -> None:

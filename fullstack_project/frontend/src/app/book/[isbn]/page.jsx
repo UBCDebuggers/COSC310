@@ -494,16 +494,6 @@ const Page = () => {
               </Dialog.Body>
 
               <Dialog.Footer>
-                {watchlistDialogStatus && (
-                  <Button
-                    colorPalette="green"
-                    onClick={() => {
-                      router.push("/watchlist");
-                    }}
-                  >
-                    Open Watchlist
-                  </Button>
-                )}
                 <Dialog.CloseTrigger asChild>
                   <Button variant="ghost" colorPalette="red">
                     <CgClose />

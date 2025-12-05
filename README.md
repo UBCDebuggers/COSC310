@@ -35,6 +35,7 @@ You'll need:
 Docker is a container that holds all our code and dependencies so it runs the same way everywhere.
 
 **For Windows or Mac:**
+
 1. Go to https://www.docker.com/products/docker-desktop
 2. Download Docker Desktop
 3. Install it and restart your computer
@@ -45,6 +46,7 @@ Docker is a container that holds all our code and dependencies so it runs the sa
    ```
 
 **For Linux:**
+
 ```bash
 sudo apt-get update
 sudo apt-get install docker.io docker-compose
@@ -82,7 +84,7 @@ Once you see "Application startup complete" in the logs, open your browser and g
 Here are the test accounts that come with the system:
 
 | Role  | Email | Password       |
-|-------|-------|----------------|
+| ----- | ----- | -------------- |
 | Admin | admin | check document |
 | User  | test  | check document |
 
@@ -91,6 +93,7 @@ Here are the test accounts that come with the system:
 ## Common Commands
 
 ### Start the system
+
 ```bash
 # See all the logs in your terminal
 docker-compose up
@@ -103,6 +106,7 @@ docker-compose up --build
 ```
 
 ### Stop the system
+
 ```bash
 # Stop everything
 docker-compose down
@@ -112,6 +116,7 @@ docker-compose down -v
 ```
 
 ### Check what's happening
+
 ```bash
 # See all logs from both backend and frontend
 docker-compose logs
@@ -124,6 +129,7 @@ docker-compose logs -f frontend
 ```
 
 ### Restart things
+
 ```bash
 # Restart everything
 docker-compose restart
@@ -137,12 +143,14 @@ docker-compose restart backend
 ## What's Under the Hood
 
 **Backend**: FastAPI (Python) running on port 8000
+
 - FastAPI (the web framework)
 - Uvicorn (serves the API)
 - bcrypt (hashes passwords)
 - PyJWT (handles login tokens)
 
 **Frontend**: Next.js (React) running on port 3000
+
 - Next.js 15.5.6
 - Chakra UI (makes things look nice)
 - Recharts (draws those charts on the dashboard)
@@ -155,11 +163,13 @@ docker-compose restart backend
 ## Where's the Data?
 
 All the data files are in:
+
 ```
 fullstack_project/backend/app/data/
 ```
 
 This includes:
+
 - `users.csv` - All the user accounts
 - `book_reservations.csv` - Who has what book and when it's due
 - `penalties.csv` - Who owes fines or is banned
@@ -176,6 +186,7 @@ cp -r fullstack_project/backend/app/data/ backup/data_$(date +%Y%m%d)
 ```
 
 If something goes wrong, you can restore from backup:
+
 ```bash
 cp backup/data_YYYYMMDD/* fullstack_project/backend/app/data/
 docker-compose restart backend
@@ -205,21 +216,184 @@ Make passwords strong - mix uppercase, lowercase, numbers, and special character
 ## Keeping the System Running
 
 ### Every Day
+
 - Check the logs for errors: `docker-compose logs`
 - Make sure you can access http://localhost:3000
 - Make sure the API is responding at http://localhost:8000/docs
 
 ### Every Week
+
 - Look at who's using the system
 - Check if anyone has penalties that are about to expire
 - Make a backup of the data
 - Make sure you have enough disk space
 
 ### Every Month
+
 - Review who has access to the system
 - Look at how the system is performing
 - Test that your backups actually work
 - Update any dependencies if there are security patches
+
+---
+
+## Database Management Procedures
+
+This system uses CSV files for data storage instead of a traditional database. Here's how to manage them:
+
+### CSV Data Files Location
+
+```
+fullstack_project/backend/app/data/
+├── users.csv              # User accounts and login info
+├── book_reservations.csv  # Book loans and reservations
+├── penalties.csv          # User penalties and restrictions
+├── ratings.csv            # Book ratings and reviews
+└── analytics.csv          # Historical usage data
+```
+
+### Working with CSV Files
+
+**Export/Backup a CSV file:**
+
+```bash
+cp fullstack_project/backend/app/data/users.csv backups/users_backup.csv
+```
+
+**Restore from backup:**
+
+```bash
+cp backups/users_backup.csv fullstack_project/backend/app/data/users.csv
+docker-compose restart backend
+```
+
+**Clear old data:**
+If a CSV file gets too large, you can archive it and start fresh:
+
+```bash
+# Backup the old file
+cp fullstack_project/backend/app/data/book_reservations.csv backups/book_reservations_old.csv
+
+# Create a new empty one with headers (copy from original)
+# Then restart
+docker-compose restart backend
+```
+
+### Data File Formats
+
+**users.csv** - User accounts
+
+```
+userid;email;hash_password;is_admin;department;age;username;firstname;lastname
+```
+
+**book_reservations.csv** - Book loans
+
+```
+reservation_id;isbn;userid;reservation_date;status;expiry_date;active
+```
+
+Status: 0=NOT_RETURNED, 1=RETURNED, 2=RETURNED_OVERDUE, 3=NOT_RETURNED_OVERDUE, 4=CANCELLED
+
+**penalties.csv** - User penalties
+
+```
+penalty_id;userid;penalty_type;description;timestamp;expiry_date;active
+```
+
+Penalty Type: 0=TEMPORARY_BAN, 1=DEACTIVATED, 2=LIMITED_ACTIONS, 3=PERMANENT_BAN
+
+### Regular Maintenance
+
+**Weekly CSV Check:**
+
+1. Make sure all CSV files exist in `fullstack_project/backend/app/data/`
+2. Check file permissions (should be readable/writable)
+3. Verify no duplicate entries in key files
+4. Create a weekly backup
+
+**Monthly CSV Cleanup:**
+
+1. Archive old reservations (older than 6 months)
+2. Remove expired penalties from active records
+3. Check file sizes - if growing too large, consider archiving
+4. Export reports for analysis
+
+---
+
+## Configuration of External Services
+
+### Current Configuration
+
+This system is self-contained and doesn't require external services to run. Everything runs locally using Docker.
+
+### Services Running Locally
+
+1. **Backend Service (FastAPI)**
+
+   - Port: 8000
+   - No external API keys needed
+   - No database server needed (uses CSV files)
+   - Runs inside Docker container
+
+2. **Frontend Service (Next.js)**
+   - Port: 3000
+   - No external API keys needed
+   - Communicates only with local backend
+   - Runs inside Docker container
+
+### Environment Variables
+
+Currently, the system doesn't require environment variables. But if you want to add them, you can create a `.env` file:
+
+**Backend `.env` (optional):**
+
+```
+BACKEND_PORT=8000
+LOG_LEVEL=INFO
+JWT_SECRET_KEY=your-secret-key-here
+```
+
+**Frontend `.env` (optional):**
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+### Docker Configuration
+
+The `docker-compose.yml` file handles all configuration:
+
+- Backend runs on port 8000
+- Frontend runs on port 3000
+- Both services communicate internally
+- Volumes mount local code for hot-reload in development
+
+If you need to change ports, edit `docker-compose.yml`:
+
+```yaml
+ports:
+  - "8000:8000" # Change first number to use different host port
+```
+
+### Adding External Services (Future)
+
+If you want to add external services later (like a real database, email service, etc.):
+
+1. **Add to docker-compose.yml** - Include the service definition
+2. **Update backend code** - Add configuration to connect to new service
+3. **Add credentials** - Use environment variables for sensitive data
+4. **Document it** - Update this README with the new service details
+
+### No APIs to Configure Right Now
+
+- No authentication APIs (uses local JWT)
+- No payment systems (no payments)
+- No external email service (could add later if needed)
+- No external database (all local CSV)
+- No cloud storage (all local)
+
+If you need to integrate any external services in the future, update the Docker configuration and document it here.
 
 ---
 
@@ -242,11 +416,13 @@ Then stop that process. If you're on Windows, use `taskkill /PID [number] /F`. O
 ### Docker container won't start
 
 Check what went wrong:
+
 ```bash
 docker-compose logs backend
 ```
 
 Usually just rebuild and try again:
+
 ```bash
 docker-compose down
 docker-compose up --build
@@ -255,11 +431,13 @@ docker-compose up --build
 ### Backend is running but frontend can't connect
 
 Make sure the backend is actually working:
+
 ```bash
 curl http://localhost:8000/docs
 ```
 
 If that works, try restarting the backend:
+
 ```bash
 docker-compose restart backend
 ```
@@ -277,20 +455,24 @@ docker-compose restart backend
 These are the endpoints your frontend hits to get data:
 
 ### Logging in
+
 - `POST /auth/login` - Send username and password, get a token back
 
 ### Users
+
 - `GET /users/getall` - Get a list of all users (admin only)
 - `GET /users/get/{id}` - Get info about a specific user
 - `POST /users/create` - Create a new user (admin only)
 
 ### Library stuff
+
 - `GET /library/outstandingloans` - What books are currently checked out
 - `GET /library/activepenalties?userid={id}` - What penalties a user has
 - `GET /library/userloans?userid={id}` - What books a user has checked out
 - `POST /library/createpenalty` - Add a penalty for a user (admin only)
 
 ### Analytics
+
 - `GET /analytics/genre` - Break down loans by genre
 - `GET /analytics/trending` - What books are popular
 
@@ -304,7 +486,7 @@ For the full list, check http://localhost:8000/docs when the system is running.
 COSC310/
 ├── docker-compose.yml          # Docker setup file
 ├── README.md                    # This file
-├── LICENSE                      
+├── LICENSE
 └── fullstack_project/
     ├── backend/                 # The API code
     │   ├── Dockerfile

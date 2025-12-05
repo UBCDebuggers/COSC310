@@ -25,7 +25,7 @@ import {
 } from "@chakra-ui/react";
 import { LuMoon, LuSun } from "react-icons/lu";
 import { BsPerson, BsGear, BsBoxArrowLeft } from "react-icons/bs";
-import { FiSearch } from "react-icons/fi";
+import { FiSearch, FiMessageSquare } from "react-icons/fi";
 import { VscBook } from "react-icons/vsc";
 import { BiSliderAlt } from "react-icons/bi";
 import { CgArrowLongRight, CgClose } from "react-icons/cg";
@@ -332,6 +332,16 @@ const Sidebar = ({ children }) => {
                   {colorMode === "light" ? <LuSun /> : <LuMoon />}
                 </IconButton>
               </ClientOnly>
+              <IconButton
+                alignSelf={"center"}
+                variant={"ghost"}
+                size={"lg"}
+                borderRadius={4}
+                aria-label="Open help chat"
+                onClick={() => router.push("/help")}
+              >
+                <FiMessageSquare />
+              </IconButton>
               <Menu.Root positioning={{ placement: "bottom-end" }}>
                 <Menu.Trigger rounded="full" focusRing="outside">
                   <Avatar.Root

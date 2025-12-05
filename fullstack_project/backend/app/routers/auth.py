@@ -35,7 +35,7 @@ async def user_signup(payload: UserCreate):
     if not user:
         raise HTTPException(status_code=status.WS_1011_INTERNAL_ERROR, detail="Something went wrong while creating your profile please try again")
     
-    access_token = create_access_token(data={"sub": user.userid, "admin" : user.is_admin})
+    access_token = create_access_token(data={"sub": user.userid, "admin" : user.is_admin, "username" : user.username, "email" : user.email})
     return TokenResponse(access_token=access_token)
 
 #Verifies access token

@@ -3,15 +3,7 @@ import React, { useEffect, useState, useContext } from "react";
 import { useRouter } from "next/navigation";
 import AuthContext from "../context/AuthContext";
 import axios from "axios";
-import {
-  VStack,
-  HStack,
-  Text,
-  Image,
-  Box,
-  Spinner,
-  Skeleton,
-} from "@chakra-ui/react";
+import { VStack, HStack, Text, Image, Spinner } from "@chakra-ui/react";
 
 export default function WatchlistPage() {
   const router = useRouter();
@@ -21,7 +13,10 @@ export default function WatchlistPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.access_token) return;
+    if (!user?.access_token) {
+      router.push("/");
+      return;
+    }
 
     const fetchWatchlist = async () => {
       try {
@@ -46,6 +41,9 @@ export default function WatchlistPage() {
   if (loading) {
     return (
       <VStack w="100%" p={5}>
+        <Text fontWeight={"bold"} fontSize={"5xl"}>
+          My Watchlist
+        </Text>
         <Spinner size="xl" />
       </VStack>
     );
@@ -53,6 +51,9 @@ export default function WatchlistPage() {
 
   return (
     <VStack w="100%" alignItems="flex-start" p={5} gap={4}>
+      <Text fontWeight={"bold"} fontSize={"5xl"}>
+        My Watchlist
+      </Text>
       {books.map((book) => (
         <HStack
           key={book.isbn}

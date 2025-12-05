@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import AuthContext from "@/app/context/AuthContext";
 import { useColorMode } from "./ui/color-mode";
+import { IoPricetagsOutline } from "react-icons/io5";
+import { LuHistory } from "react-icons/lu";
+import { MdOutlineNotifications } from "react-icons/md";
 import {
   ClientOnly,
   IconButton,
@@ -281,18 +284,17 @@ const Sidebar = ({ children }) => {
             </Combobox.Root>
 
             <Dialog.Root>
-              <ClientOnly fallback={<Skeleton boxSize="8" />}>
-                <Dialog.Trigger asChild>
-                  <IconButton
-                    alignSelf={"center"}
-                    variant={"ghost"}
-                    size={"lg"}
-                    borderRadius={4}
-                  >
-                    <BiSliderAlt />
-                  </IconButton>
-                </Dialog.Trigger>
-              </ClientOnly>
+              <Dialog.Trigger asChild>
+                <IconButton
+                  alignSelf={"center"}
+                  variant={"ghost"}
+                  size={"lg"}
+                  borderRadius={4}
+                >
+                  <BiSliderAlt />
+                </IconButton>
+              </Dialog.Trigger>
+
               <Portal>
                 <Dialog.Backdrop />
                 <Dialog.Positioner>
@@ -321,17 +323,26 @@ const Sidebar = ({ children }) => {
             </Dialog.Root>
 
             <Flex justifyContent={"flex-end"} w={"20vw"} gap={4}>
-              <ClientOnly fallback={<Skeleton boxSize="8" />}>
-                <IconButton
-                  alignSelf={"center"}
-                  onClick={toggleColorMode}
-                  variant={"ghost"}
-                  size={"lg"}
-                  borderRadius={4}
-                >
-                  {colorMode === "light" ? <LuSun /> : <LuMoon />}
-                </IconButton>
-              </ClientOnly>
+              <IconButton
+                alignSelf={"center"}
+                onClick={() => {
+                  router.push("/notifications");
+                }}
+                variant={"ghost"}
+                size={"lg"}
+                borderRadius={4}
+              >
+                <MdOutlineNotifications />
+              </IconButton>
+              <IconButton
+                alignSelf={"center"}
+                onClick={toggleColorMode}
+                variant={"ghost"}
+                size={"lg"}
+                borderRadius={4}
+              >
+                {colorMode === "light" ? <LuSun /> : <LuMoon />}
+              </IconButton>
               <Menu.Root positioning={{ placement: "bottom-end" }}>
                 <Menu.Trigger rounded="full" focusRing="outside">
                   <Avatar.Root
@@ -377,13 +388,45 @@ const Sidebar = ({ children }) => {
                           <Text fontWeight={"bold"}>Settings</Text>
                         </Flex>
                       </Menu.Item>
-                      <Menu.Item
-                        value="logout"
-                        onClick={() => {
-                          logout;
-                          router;
-                        }}
-                      >
+                      {user?.admin === "false" ? null : (
+                        <Menu.Item
+                          value={"history"}
+                          onClick={() => {
+                            router.push("/history");
+                          }}
+                        >
+                          <Flex
+                            gap={2}
+                            w={"full"}
+                            borderBottomWidth={1}
+                            borderColor={"grey.300"}
+                          >
+                            <LuHistory size={25} />
+                            <Text fontWeight={"bold"}>History</Text>
+                          </Flex>
+                        </Menu.Item>
+                      )}
+
+                      {user?.admin === "false" ? null : (
+                        <Menu.Item
+                          value={"watchlist"}
+                          onClick={() => {
+                            router.push("/watchlist");
+                          }}
+                        >
+                          <Flex
+                            gap={2}
+                            w={"full"}
+                            borderBottomWidth={1}
+                            borderColor={"grey.300"}
+                          >
+                            <IoPricetagsOutline size={25} />
+                            <Text fontWeight={"bold"}>Watchlist</Text>
+                          </Flex>
+                        </Menu.Item>
+                      )}
+
+                      <Menu.Item value="logout" onClick={logout}>
                         <Flex
                           gap={2}
                           w={"full"}
@@ -394,55 +437,53 @@ const Sidebar = ({ children }) => {
                           <Text fontWeight={"bold"}>Logout</Text>
                         </Flex>
                       </Menu.Item>
-                      <Menu.Item></Menu.Item>
                     </Menu.Content>
                   </Menu.Positioner>
                 </Portal>
               </Menu.Root>
             </Flex>
           </Flex>
-          <Flex direction="column" flex={1} w="100%">
-            {children}
-            <Spacer />
-            <Flex
-              justifyContent={"center"}
-              p={4}
-              gap={5}
-              w={"100%"}
-              borderColor={"grey.300"}
-              borderTop="1px"
-              mt={10}
-              bg={{base: "white", _dark: "gray.950"}}
-            >
-              <Flex gap={2}>
-                <Box
-                  cursor={"pointer"}
-                  _hover={{ color: "gray.800" }}
-                  color={"gray.400"}
-                >
-                  <VscBook size={20} />
-                </Box>
-                <Text alignSelf={"center"} color={"gray.400"}>
-                  © 2025 UBCDebuggers, org.
-                </Text>
-              </Flex>
-              <Text
-                alignSelf={"center"}
-                _hover={{ textDecoration: "underline" }}
+          {children}
+          <Spacer />
+          <Flex
+            justifyContent={"center"}
+            p={4}
+            gap={5}
+            w={"100%"}
+            borderColor={"grey.300"}
+            borderTop="1px"
+            mt={10}
+            bg={{ base: "white", _dark: "gray.950" }}
+            alignSelf={"flex-end"}
+          >
+            <Flex gap={2}>
+              <Box
                 cursor={"pointer"}
+                _hover={{ color: "gray.800" }}
                 color={"gray.400"}
               >
-                Contact
-              </Text>
-              <Text
-                alignSelf={"center"}
-                _hover={{ textDecoration: "underline" }}
-                cursor={"pointer"}
-                color={"gray.400"}
-              >
-                Terms
+                <VscBook size={20} />
+              </Box>
+              <Text alignSelf={"center"} color={"gray.400"}>
+                © 2025 UBCDebuggers, org.
               </Text>
             </Flex>
+            <Text
+              alignSelf={"center"}
+              _hover={{ textDecoration: "underline" }}
+              cursor={"pointer"}
+              color={"gray.400"}
+            >
+              Contact
+            </Text>
+            <Text
+              alignSelf={"center"}
+              _hover={{ textDecoration: "underline" }}
+              cursor={"pointer"}
+              color={"gray.400"}
+            >
+              Terms
+            </Text>
           </Flex>
         </VStack>
       ) : (

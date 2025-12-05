@@ -78,6 +78,41 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const signup = async (userData) => {
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/auth/signup",
+        userData,
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      console.log(response);
+
+      const token = response.data.access_token;
+
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      localStorage.setItem("access_token", token);
+
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const isAdmin = payload.admin || false;
+
+      setUser({
+        ...payload,
+        access_token: token,
+      });
+
+      localStorage.setItem("isAdmin", isAdmin);
+
+      router.push(isAdmin ? "/admindashboard" : "/dashboard");
+
+      return true;
+    } catch (error) {
+      console.error("Signup failed:", error);
+      throw error;
+    }
+  };
+
   const logout = () => {
     setUser(null);
     delete axios.defaults.headers.common["Authorization"];
@@ -86,7 +121,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

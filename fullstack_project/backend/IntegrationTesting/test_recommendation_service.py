@@ -12,6 +12,7 @@ from app.services.recommendations_service import (
 
 MOCK_MODULE = "app.services.recommendations_service"
 
+
 class MockKNN:
     def __init__(self):
         self.kneighbors_called = None
@@ -21,6 +22,7 @@ class MockKNN:
     def kneighbors(self, X, n_neighbors):
         self.kneighbors_called = (X, n_neighbors)
         return self.distances, self.indices
+
 
 class TestRecommenderSystem(unittest.TestCase):
 
@@ -42,7 +44,6 @@ class TestRecommenderSystem(unittest.TestCase):
         mock_fit.return_value = (mock_knn, mock_matrix.T)
 
         knn1, items1, users1, books1 = get_recommender()
-
         knn2, items2, users2, books2 = get_recommender()
 
         self.assertIs(knn1, knn2, "KNN instance must be reused")
@@ -52,6 +53,7 @@ class TestRecommenderSystem(unittest.TestCase):
     @patch(f"{MOCK_MODULE}.get_recommender")
     def test_get_similar_books_calls_knn_correctly(self, mock_get_rec):
         """Ensure nearest neighbors function is called properly."""
+
         mock_knn = MockKNN()
 
         item_user_matrix = np.array([
@@ -60,14 +62,14 @@ class TestRecommenderSystem(unittest.TestCase):
             [0, 0, 1]
         ])
 
-        mock_get_rec.return_value = (mock_knn, item_user_matrix, None)
+        mock_get_rec.return_value = (mock_knn, item_user_matrix, {}, {})
 
         result = get_similar_books(book_index=1, k=2)
 
         self.assertEqual(result.tolist(), [5, 7])
 
         X, n = mock_knn.kneighbors_called
-        self.assertEqual(n, 3)  
+        self.assertEqual(n, 3)
         self.assertTrue(np.array_equal(X, item_user_matrix[1].reshape(1, -1)))
 
     @patch(f"{MOCK_MODULE}.get_similar_books")
@@ -76,26 +78,33 @@ class TestRecommenderSystem(unittest.TestCase):
         """Ensure correct scoring + ranking for user recommendations."""
 
         matrix = np.array([
-            [1, 0, 1], 
-            [0, 0, 0]
+        [1, 0, 1],
+        [0, 0, 0]
         ])
 
         user_map = {"U01": 0}
-        book_map = {0: 0, 1: 1, 2: 2}
+
+        book_map = {
+        "ISBN0": 0,
+        "ISBN1": 1,
+        "ISBN2": 2,
+        "ISBN4": 4,
+        "ISBN5": 5
+        }
 
         item_user_matrix = matrix.T
         mock_knn = MockKNN()
 
-        mock_get_rec.return_value = (mock_knn, item_user_matrix, matrix, user_map, book_map)
+        mock_get_rec.return_value = (mock_knn, item_user_matrix, user_map, book_map)
 
         mock_similar.side_effect = [
-            np.array([2, 5]),
-            np.array([2, 4])
+        np.array([2, 5]),  
+        np.array([2, 4])  
         ]
 
         result = recommend_for_user("U01", N=3)
 
-        expected = [2, 5, 4]
+        expected = ["ISBN2", "ISBN5", "ISBN4"]
         self.assertEqual(result, expected)
 
     @patch(f"{MOCK_MODULE}.get_recommender")
@@ -107,10 +116,12 @@ class TestRecommenderSystem(unittest.TestCase):
         book_map = {}
 
         mock_knn = MockKNN()
-        mock_get_rec.return_value = (mock_knn, matrix.T, matrix, user_map, book_map)
+
+        mock_get_rec.return_value = (mock_knn, matrix.T, user_map, book_map)
 
         with self.assertRaises(HTTPException):
             recommend_for_user("NOT FOUND")
+
 
 if __name__ == "__main__":
     unittest.main()

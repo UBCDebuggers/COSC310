@@ -95,9 +95,20 @@ const ReviewBox = React.memo(function ReviewBox({
   );
 });
 
-const RatingsList = React.memo(function RatingsList({ ratings }) {
+const RatingsList = React.memo(function RatingsList({ ratings, loading }) {
   if (!ratings || ratings.length === 0)
-    return <Text>No Ratings Available</Text>;
+    return loading ? (
+      <VStack w={"full"} h={"full"}>
+        <ProgressCircle.Root value={null} size="sm">
+          <ProgressCircle.Circle>
+            <ProgressCircle.Track />
+            <ProgressCircle.Range />
+          </ProgressCircle.Circle>
+        </ProgressCircle.Root>
+      </VStack>
+    ) : (
+      <Text>No Ratings Available</Text>
+    );
 
   return (
     <>
@@ -138,11 +149,19 @@ const Page = () => {
   const [waitlistDialogStatus, setWaitlistDialogStatus] = useState(false);
   const [waitlistDialogMessage, setWaitlistDialogMessage] = useState("");
 
+  const [recommended, setRecommended] = useState([]);
+  const [showRecommend, setShowRecommend] = useState(false);
+
   const averageRating = useMemo(() => {
     if (!ratings || ratings.length === 0) return 0;
     const total = ratings.reduce((a, b) => a + b.rating, 0);
     return total / ratings.length;
   }, [ratings]);
+
+  // NEW: Click handler for recommended books
+  const handleBookClick = (isbn) => {
+    router.push(`/book/${isbn}`);
+  };
 
   useEffect(() => {
     if (!isbn) {
@@ -152,22 +171,38 @@ const Page = () => {
 
     const fetchData = async () => {
       try {
-        const [bookRes, ratingsJson, resData, watchlistJson] =
-          await Promise.all([
-            fetch(`http://localhost:8000/books/${isbn}`),
-            fetch(`http://localhost:8000/ratings/isbn/${isbn}`).then((r) =>
-              r.ok ? r.json() : []
-            ),
-            fetch(`http://localhost:8000/library/bookstatus/${isbn}`),
-            user?.access_token
-              ? axios
-                  .get("http://localhost:8000/watchlist", {
-                    headers: { Authorization: `Bearer ${user.access_token}` },
-                  })
-                  .then((r) => r.data)
-              : [],
-          ]);
-
+        const [
+          bookRes,
+          ratingsJson,
+          resData,
+          watchlistJson,
+          recommendedRes,
+          resHistory,
+        ] = await Promise.all([
+          fetch(`http://localhost:8000/books/${isbn}`),
+          fetch(`http://localhost:8000/ratings/isbn/${isbn}`).then((r) =>
+            r.ok ? r.json() : []
+          ),
+          fetch(`http://localhost:8000/library/bookstatus/${isbn}`),
+          user?.access_token
+            ? axios
+                .get("http://localhost:8000/watchlist", {
+                  headers: { Authorization: `Bearer ${user.access_token}` },
+                })
+                .then((r) => r.data)
+            : [],
+          user?.access_token
+            ? axios.get("http://localhost:8000/recommend", {
+                headers: { Authorization: `Bearer ${user.access_token}` },
+              })
+            : null,
+          user?.access_token
+            ? axios.post(`http://localhost:8000/history/create/${isbn}`, {
+                headers: { Authorization: `Bearer ${user.access_token}` },
+              })
+            : null,
+        ]);
+        console.log(resHistory);
         if (resData.ok) {
           const reserveJson = await resData.json();
           setReserved(reserveJson.status === "available");
@@ -175,8 +210,24 @@ const Page = () => {
           setReserved(true);
         }
 
-        if (!bookRes.ok) throw new Error(`Book fetch failed ${bookRes.status}`);
+        // -------- FIXED RECOMMENDATION FETCHING --------
+        if (recommendedRes && recommendedRes.status === 200) {
+          setShowRecommend(true);
 
+          const recommendedIsbns = recommendedRes.data;
+
+          const books = await Promise.all(
+            recommendedIsbns.map((isbn) =>
+              fetch(`http://localhost:8000/books/${isbn}`).then((res) =>
+                res.json()
+              )
+            )
+          );
+
+          setRecommended(books);
+        }
+
+        if (!bookRes.ok) throw new Error(`Book fetch failed ${bookRes.status}`);
         const bookData = await bookRes.json();
 
         setBook(bookData);
@@ -252,7 +303,7 @@ const Page = () => {
     if (!user?.access_token) return router.push("/");
 
     try {
-      const res = await axios.post(
+      await axios.post(
         `http://localhost:8000/library/borrow?reservation_id=new`,
         {
           userid: "null",
@@ -276,6 +327,7 @@ const Page = () => {
       setDialogOpen(true);
     }
   };
+
   const handleReserve = useCallback(() => {
     if (!user?.sub) return router.push("/");
     if (!reserved) return;
@@ -283,8 +335,9 @@ const Page = () => {
   }, [reserved, user, isbn]);
 
   return (
-    <VStack w="full" h="full" alignItems="flex-start" p={5} overflow="hidden">
-      <Flex w="full" h="full" gap={5} flex={1}>
+    <VStack w="100vw" h="100vh" alignItems="flex-start" p={5}>
+      <Flex w="full" h={"70vh"} gap={5} flex={1}>
+        {/* ------------ BOOK INFO PANEL ------------ */}
         <Flex
           backdropFilter="blur(5px)"
           bg={{ _dark: "gray.800", _light: "gray.300" }}
@@ -294,12 +347,12 @@ const Page = () => {
           maxW="60vw"
           gap={10}
           alignItems="center"
+          minW={"50vw"}
         >
           {!loading ? (
             book ? (
-              <>
+              <Flex gap={10} maxW={"55vw"} h="full" p={4}>
                 <Image src={book.img_url_l} borderRadius={10} />
-
                 <VStack alignItems="flex-start">
                   <Text fontWeight="bold" fontSize={24}>
                     {book.title}
@@ -326,7 +379,7 @@ const Page = () => {
                   </Text>
                   <Text color="gray.500">ISBN: {book.isbn}</Text>
 
-                  <Flex gap={20}>
+                  <Flex gap={10}>
                     <Button
                       colorPalette={reserved ? "green" : "red"}
                       onClick={handleReserve}
@@ -353,25 +406,28 @@ const Page = () => {
                       </Button>
                     )}
                   </Flex>
-                </VStack>
 
-                <IconButton
-                  variant="ghost"
-                  p={4}
-                  colorPalette={"blue"}
-                  disabled={addedToWatchlist}
-                  onClick={() => addToWatchlist(book.isbn)}
-                  alignSelf={"flex-start"}
-                >
-                  {addedToWatchlist ? "Added to Watchlist" : "Add to Watchlist"}
-                  {addedToWatchlist ? <IoMdCheckmark /> : <MdAdd />}
-                </IconButton>
-              </>
+                  <IconButton
+                    variant="ghost"
+                    p={4}
+                    colorPalette={"blue"}
+                    disabled={addedToWatchlist}
+                    onClick={() => addToWatchlist(book.isbn)}
+                    alignSelf={"flex-start"}
+                    mt={5}
+                  >
+                    {addedToWatchlist
+                      ? "Added to Watchlist"
+                      : "Add to Watchlist"}
+                    {addedToWatchlist ? <IoMdCheckmark /> : <MdAdd />}
+                  </IconButton>
+                </VStack>
+              </Flex>
             ) : (
               <Text>Content Unavailable</Text>
             )
           ) : (
-            <ProgressCircle.Root value={null} size="sm">
+            <ProgressCircle.Root value={null} size="sm" alignSelf={"center"}>
               <ProgressCircle.Circle>
                 <ProgressCircle.Track />
                 <ProgressCircle.Range />
@@ -380,8 +436,23 @@ const Page = () => {
           )}
         </Flex>
 
+        {/* ------------ RATINGS PANEL ------------ */}
         <ScrollArea.Root flex={2}>
-          <ScrollArea.Viewport>
+          <ScrollArea.Viewport
+            css={{
+              "--scroll-shadow-size": "4rem",
+              maskImage:
+                "linear-gradient(#000,#000,transparent 0,#000 var(--scroll-shadow-size),#000 calc(100% - var(--scroll-shadow-size)),transparent)",
+              "&[data-at-top]": {
+                maskImage:
+                  "linear-gradient(180deg,#000 calc(100% - var(--scroll-shadow-size)),transparent)",
+              },
+              "&[data-at-bottom]": {
+                maskImage:
+                  "linear-gradient(0deg,#000 calc(100% - var(--scroll-shadow-size)),transparent)",
+              },
+            }}
+          >
             <ScrollArea.Content spaceY="4">
               <ReviewBox
                 user={user}
@@ -391,7 +462,7 @@ const Page = () => {
                 setUserRating={setUserRating}
                 onSubmit={addRating}
               />
-              <RatingsList ratings={ratings} />
+              <RatingsList ratings={ratings} loading={loading} />
             </ScrollArea.Content>
           </ScrollArea.Viewport>
 
@@ -401,7 +472,7 @@ const Page = () => {
         </ScrollArea.Root>
       </Flex>
 
-      {/* ---------- DIALOG ---------- */}
+      {/* ---------- WATCHLIST DIALOG ---------- */}
       <Dialog.Root
         open={watchlistDialogOpen}
         onOpenChange={(d) => setWatchlistDialogOpen(d.open)}
@@ -444,7 +515,7 @@ const Page = () => {
         </Portal>
       </Dialog.Root>
 
-      {/* ---------- DIALOG 2: WAITLIST ---------- */}
+      {/* ---------- WAITLIST DIALOG ---------- */}
       <Dialog.Root
         open={waitlistDialogOpen}
         onOpenChange={(d) => setDialogOpen(d.open)}
@@ -484,6 +555,44 @@ const Page = () => {
           </Dialog.Positioner>
         </Portal>
       </Dialog.Root>
+
+      {/* ------------ RECOMMENDATION SECTION ------------ */}
+      {showRecommend ? (
+        <>
+          <Text fontWeight={"bold"} fontSize={30} mt={5}>
+            Recommended for you
+          </Text>
+
+          <Flex
+            backdropFilter="blur(5px)"
+            bg={{ _dark: "gray.800", _light: "gray.300" }}
+            px={10}
+            py={5}
+            borderRadius={10}
+            maxW="60vw"
+            gap={10}
+            alignItems="center"
+            minW={"50vw"}
+          >
+            <Flex gap="4" flexWrap="nowrap">
+              {recommended.map((item) => (
+                <Box
+                  key={item.isbn}
+                  width="200px"
+                  cursor="pointer"
+                  onClick={() => handleBookClick(item.isbn)}
+                >
+                  <img
+                    src={item.img_url_l}
+                    style={{ borderRadius: 6, width: "100%" }}
+                    alt={item.title}
+                  />
+                </Box>
+              ))}
+            </Flex>
+          </Flex>
+        </>
+      ) : null}
     </VStack>
   );
 };

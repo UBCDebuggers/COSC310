@@ -1,9 +1,14 @@
 from fastapi import APIRouter, Depends, status
 from app.core.security import verify_access_token
 from app.schemas.history import HistoryListResponse, ErrorResponse
-from app.services.create_history_item import get_last_books, get_history_by_isbn, get_history_by_userid, delete_history_item
+from app.services.create_history_item import get_last_books, get_history_by_isbn, get_history_by_userid, delete_history_item, create_history
 
 router = APIRouter(prefix="/history", tags=["history"])
+
+@router.post("/create/{isbn}", response_model=HistoryListResponse,
+            responses={404: {"model": ErrorResponse}})
+def create_history_item(isbn : str, token_data : dict = Depends(verify_access_token)):
+    return create_history(token_data.get('userid'), isbn)
 
 # Get the last N books viewed by a user (default: last 10)
 @router.get("/user/{userid}/last", response_model=HistoryListResponse,

@@ -1,64 +1,38 @@
 from typing import List
 from math import log
-from fastapi import HTTPException, status
 import numpy as np
+from fastapi import HTTPException, status
+from scipy.sparse import lil_matrix
 from sklearn.neighbors import NearestNeighbors
 from app.repositories.reservations_repo import load_all as load_reservations
 from app.repositories.ratings_repo import load_all as load_ratings
 from app.repositories.analytics_repo import load_all
 
-#Collects all userids and book isbn in ratings and reservations file
-def _build_index_maps(reservations, ratings):
-    users = set()
-    books = set()
-
-    for entry in reservations:
-        books.add(entry.get('isbn'))
-        users.add(entry.get('userid'))
-
-    for entry in ratings:
-        users.add(entry.get('userid'))
-        books.add(entry.get('isbn'))
-
-    user_to_index = {uid: idx for idx, uid in enumerate(sorted(users))}
-    book_to_index = {isbn: idx for idx, isbn in enumerate(sorted(books))}
-
-    return user_to_index, book_to_index
-
-#fills the supplied matrix with rating data
-def _fill_ratings(matrix, ratings, user_to_index, book_to_index):
-    for entry in ratings:
-        uid = entry['userid']
-        isbn = entry['isbn']
-        rating = entry['rating']
-
-        u_idx = user_to_index[uid]
-        b_idx = book_to_index[isbn]
-
-        matrix[u_idx, b_idx] = rating
-
-#fills the supplied matrix with reservation data
-def _fill_reservations(matrix, reservations, user_to_index, book_to_index):
-    for isbn, userids in reservations.items():
-        b_idx = book_to_index[isbn]
-        for uid in userids:
-            u_idx = user_to_index[uid]
-            matrix[u_idx, b_idx] = 1
-
 #buils a matrix with reservation data and rating data
 def _build_user_book_matrix():
-    ratings = load_ratings()
-    reservations = load_reservations()
+    interactions = load_ratings()
+    user_to_index = {}
+    book_to_index = {}
 
-    user_to_index, book_to_index = _build_index_maps(reservations, ratings)
+    for row in interactions:
+        user = row["userid"]
+        book = row["isbn"]
 
-    matrix = np.zeros((len(user_to_index), len(book_to_index)))
+        if user not in user_to_index:
+            user_to_index[user] = len(user_to_index)
+        if book not in book_to_index:
+            book_to_index[book] = len(book_to_index)
 
-    _fill_reservations(matrix, reservations, user_to_index, book_to_index)
+    matrix = lil_matrix((len(user_to_index), len(book_to_index)), dtype=float)
 
-    _fill_ratings(matrix, ratings, user_to_index, book_to_index)
+    for row in interactions:
+        u = user_to_index[row["userid"]]
+        b = book_to_index[row["isbn"]]
 
-    return matrix, user_to_index, book_to_index
+        rating = row.get("rating", 1)  # or engagement score
+        matrix[u, b] = rating
+
+    return matrix.tocsr(), user_to_index, book_to_index
 
 #fits NearestNeighbors model to the item_user_matrix
 def _fit_knn_model(matrix, metric : str = 'cosine'):
@@ -81,23 +55,34 @@ def get_recommender():
     return get_recommender.model
 
 #gets the closest books to the index
-def get_similar_books(book_index : int, k : int = 10):
-    knn, item_user_matrix, _ = get_recommender()
+def get_similar_books(book_index: int, k: int = 10):
+    knn, item_user_matrix, user_to_index, book_to_index = get_recommender()
 
     _, indices = knn.kneighbors(
         item_user_matrix[book_index].reshape(1, -1),
-        n_neighbors=k+1
+        n_neighbors=k + 1
     )
     return indices[0][1:]
 
-#recommends n books to a user based on past reservations
-def recommend_for_user(userid : str, N : int = 5):
-    _, _, matrix, user_to_index, _ = get_recommender()
-    
-    if userid not in user_to_index:
-        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= f"User {userid} not found in matrix try borrowing and rating more books")
 
-    user_row = matrix[user_to_index[userid]]
+#recommends n books to a user based on past reservations
+def recommend_for_user(userid: str, N: int = 5):
+    knn, item_user_matrix, user_to_index, book_to_index = get_recommender()
+
+    if userid not in user_to_index:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {userid} not found in matrix. Try borrowing/rating more books."
+        )
+
+    u_idx = user_to_index[userid]
+
+    col = item_user_matrix[:, u_idx]
+    if hasattr(col, "toarray"):
+        user_row = col.toarray().flatten()
+    else:
+        user_row = col.flatten()
+
     used_books = np.where(user_row > 0)[0]
 
     scores = {}
@@ -109,7 +94,9 @@ def recommend_for_user(userid : str, N : int = 5):
 
     ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
 
-    return [book for book, score in ranked[:N]]
+    index_to_book = {v: k for k, v in book_to_index.items()}
+
+    return [index_to_book[book] for book, score in ranked[:N]]
 
 
 #sorts books by popularity

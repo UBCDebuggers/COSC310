@@ -53,7 +53,7 @@ const PenaltyManagement = () => {
         const token = localStorage.getItem("access_token");
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        const response = await fetch("http://localhost:8000/users/all", {
+        const response = await fetch("http://localhost:8000/users/getall", {
           headers,
         });
 
@@ -167,13 +167,13 @@ const PenaltyManagement = () => {
 
   return (
     <Center w="100%" minH="100vh">
-      <VStack>
-      <VStack maxW="900px" align="start" p={20} mb={-14}>
-        <Text fontWeight="bold" fontSize="2xl">
+      <VStack w="100%" h="100%" align="center" justify="center" spacing={0}>
+      <VStack maxW="500px" align="center" p={20} w="100%">
+        <Text fontWeight="bold" fontSize="2xl" mb={8}>
           Penalty Management
         </Text>
         {selectedUser && (
-          <VStack alignItems="start" w="100%">
+          <VStack alignItems="center" w="100%" mb={6}>
             <Text color="gray.400" fontSize="sm" fontWeight="500">
               Selected User
             </Text>
@@ -210,15 +210,13 @@ const PenaltyManagement = () => {
             </HStack>
           </VStack>
         )}
-      </VStack>
 
-      {/* Main Content - Two Column Layout */}
-      <Box w="100%">
-        <Text fontWeight="bold" fontSize={20} mb={5}>
-          Add Penalty
-        </Text>
+        <Box w="100%" mb={8}>
+          <Text fontWeight="bold" fontSize={20} mb={5} textAlign="center">
+            Add Penalty
+          </Text>
 
-        <VStack as="form" onSubmit={handleAddPenalty} spacing={4} w="100%" maxW="500px" mb={12}>
+          <VStack as="form" onSubmit={handleAddPenalty} spacing={4} w="100%" align="center">
           <Box w="100%">
             <Text mb={2} fontWeight="600" fontSize="sm">
               Select User
@@ -240,7 +238,7 @@ const PenaltyManagement = () => {
               }}
             />
 
-            {searchQuery && filteredUsers.length > 0 && (
+            {filteredUsers.length > 0 && (
               <Box
                 maxH="250px"
                 overflowY="auto"
@@ -265,10 +263,10 @@ const PenaltyManagement = () => {
                     transition="all 0.2s"
                   >
                     <Text fontWeight="600" color={selectedUser === user.userid ? "white" : "gray.900"}>
-                      {user.userid}
+                      {user.email}
                     </Text>
                     <Text color={selectedUser === user.userid ? "blue.100" : "gray.500"} fontSize="sm">
-                      {user.email || "No email"}
+                      ID: {user.userid}
                     </Text>
                   </Box>
                 ))}
@@ -378,64 +376,67 @@ const PenaltyManagement = () => {
           >
             Create Penalty
           </Button>
-        </VStack>
-      </Box>
+          </VStack>
+        </Box>
+      </VStack>
 
       {/* User Penalties Table */}
       {selectedUser && (
-        <Box w="100%" mt={20}>
-          <Text fontWeight="bold" fontSize={20} mb={6}>
+        <Box w="100%" maxW="900px" mx="auto" mt={20}>
+          <Text fontWeight="bold" fontSize={24} mb={8} textAlign="center" color="white">
             Penalties for {selectedUser}
           </Text>
 
           {userPenalties.length > 0 ? (
             <VStack w="100%" spacing={4} align="stretch">
-              <Box w="100%" overflowX="auto" borderRadius="6px" boxShadow="0 2px 8px rgba(59, 130, 246, 0.15)">
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <Box w="100%" overflowX="auto" borderRadius="8px" boxShadow="0 4px 12px rgba(59, 130, 246, 0.2)">
+                <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
                   <thead>
-                    <tr style={{ borderBottom: "2px solid #60a5fa", backgroundColor: "#dbeafe" }}>
-                      <th style={{ padding: "14px", textAlign: "left", fontWeight: "700", color: "#1e40af", fontSize: "14px" }}>Penalty Type</th>
-                      <th style={{ padding: "14px", textAlign: "left", fontWeight: "700", color: "#1e40af", fontSize: "14px" }}>Description</th>
-                      <th style={{ padding: "14px", textAlign: "left", fontWeight: "700", color: "#1e40af", fontSize: "14px" }}>Created</th>
-                      <th style={{ padding: "14px", textAlign: "left", fontWeight: "700", color: "#1e40af", fontSize: "14px" }}>Expires</th>
-                      <th style={{ padding: "14px", textAlign: "left", fontWeight: "700", color: "#1e40af", fontSize: "14px" }}>Status</th>
+                    <tr style={{ borderBottom: "3px solid #3b82f6", backgroundColor: "#0f172a", padding: "0" }}>
+                      <th style={{ padding: "16px", textAlign: "center", fontWeight: "700", color: "#93c5fd", fontSize: "13px", letterSpacing: "0.05em", textTransform: "uppercase" }}>Penalty Type</th>
+                      <th style={{ padding: "16px", textAlign: "center", fontWeight: "700", color: "#93c5fd", fontSize: "13px", letterSpacing: "0.05em", textTransform: "uppercase" }}>Description</th>
+                      <th style={{ padding: "16px", textAlign: "center", fontWeight: "700", color: "#93c5fd", fontSize: "13px", letterSpacing: "0.05em", textTransform: "uppercase" }}>Created</th>
+                      <th style={{ padding: "16px", textAlign: "center", fontWeight: "700", color: "#93c5fd", fontSize: "13px", letterSpacing: "0.05em", textTransform: "uppercase" }}>Expires</th>
+                      <th style={{ padding: "16px", textAlign: "center", fontWeight: "700", color: "#93c5fd", fontSize: "13px", letterSpacing: "0.05em", textTransform: "uppercase" }}>Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {userPenalties.map((penalty, idx) => (
-                      <tr key={penalty.penalty_id || idx} style={{ borderBottom: idx === userPenalties.length - 1 ? "2px solid #60a5fa" : "1px solid #bfdbfe", backgroundColor: idx % 2 === 0 ? "#f0f9ff" : "white" }}>
-                        <td style={{ padding: "14px", color: "#1e40af", fontWeight: "700" }}>
+                      <tr key={penalty.penalty_id || idx} style={{ borderBottom: "1px solid #1e3a8a", backgroundColor: idx % 2 === 0 ? "#0f172a" : "#1e293b", transition: "background-color 0.2s" }}>
+                        <td style={{ padding: "16px", color: "#60a5fa", fontWeight: "600", textAlign: "center", fontSize: "14px" }}>
                           {PENALTY_TYPES[penalty.penalty_type] || `Type ${penalty.penalty_type}`}
                         </td>
-                        <td style={{ padding: "14px", color: "#374151", maxWidth: "300px" }}>
+                        <td style={{ padding: "16px", color: "#d1d5db", textAlign: "center", fontSize: "14px", wordBreak: "break-word" }}>
                           {penalty.description || "N/A"}
                         </td>
-                        <td style={{ padding: "14px", color: "#374151", fontSize: "sm" }}>
+                        <td style={{ padding: "16px", color: "#cbd5e1", textAlign: "center", fontSize: "14px" }}>
                           {penalty.timestamp ? new Date(penalty.timestamp).toLocaleDateString() : "N/A"}
                         </td>
-                        <td style={{ padding: "14px", color: "#374151", fontSize: "sm" }}>
+                        <td style={{ padding: "16px", color: "#cbd5e1", textAlign: "center", fontSize: "14px" }}>
                           {penalty.expiry_date ? new Date(penalty.expiry_date).toLocaleDateString() : "N/A"}
                         </td>
-                        <td style={{ padding: "12px" }}>
+                        <td style={{ padding: "16px", textAlign: "center" }}>
                           <span style={{
-                            padding: "4px 12px",
-                            borderRadius: "9999px",
-                            fontSize: "14px",
-                            fontWeight: "600",
-                            backgroundColor: penalty.active ? "#fee2e2" : "#dcfce7",
-                            color: penalty.active ? "#dc2626" : "#16a34a",
-                            display: "inline-block"
+                            padding: "6px 14px",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            fontWeight: "700",
+                            backgroundColor: penalty.active ? "#7f1d1d" : "#065f46",
+                            color: penalty.active ? "#fca5a5" : "#86efac",
+                            display: "inline-block",
+                            letterSpacing: "0.03em",
+                            textTransform: "uppercase"
                           }}>
                             {penalty.active ? "Active" : "Expired"}
                           </span>
                         </td>
                       </tr>
                     ))}
-                    <tr style={{ backgroundColor: "#dbeafe", fontWeight: "700" }}>
-                      <td style={{ padding: "14px", color: "#1e40af", fontWeight: "700", borderTop: "2px solid #60a5fa" }}>
-                        Total Penalties: {userPenalties.length}
+                    <tr style={{ backgroundColor: "#0f172a", fontWeight: "700", borderTop: "3px solid #3b82f6" }}>
+                      <td style={{ padding: "16px", color: "#93c5fd", fontWeight: "700", textAlign: "center", fontSize: "14px" }}>
+                        Total: {userPenalties.length}
                       </td>
-                      <td colSpan="4" style={{ padding: "14px", borderTop: "2px solid #60a5fa" }}></td>
+                      <td colSpan="4" style={{ padding: "16px", textAlign: "center", color: "#64748b" }}></td>
                     </tr>
                   </tbody>
                 </table>
@@ -443,19 +444,37 @@ const PenaltyManagement = () => {
             </VStack>
           ) : (
             <Box
-              p={6}
-              bg="gray.50"
-              borderRadius="4px"
+              p={8}
+              bg="linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
+              borderRadius="8px"
               textAlign="center"
-              border="1px solid #e5e7eb"
+              border="1px solid #1e3a8a"
+              w="100%"
+              maxW="500px"
+              mx="auto"
             >
-              <Text color="gray.500" fontSize="sm">
+              <Text color="gray.400" fontSize="sm">
                 No penalties for this user
               </Text>
             </Box>
           )}
         </Box>
       )}
+      
+      <Button
+        w="100%"
+        h="44px" 
+        bg={{ base: "black", _dark: "white" }}
+        color={{ base: "white", _dark: "gray.900" }}
+        fontWeight="600"
+        fontSize="md"
+        borderRadius="6px"
+        mt={10}
+        onClick={() => router.push('/admindashboard')}
+        _hover={{ bg: { base: "gray.800", _dark: "gray.100" } }}
+      >
+        Back to Admin Dashboard
+      </Button>
       </VStack>
     </Center>
   );

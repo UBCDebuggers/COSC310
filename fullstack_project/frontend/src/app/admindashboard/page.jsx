@@ -107,6 +107,8 @@ const adminpage = () => {
   const [mostBorrowedData, setMostBorrowedData] = useState([]);
   const [userDistData, setUserDistData] = useState([]);
   const [penaltyChartData, setPenaltyChartData] = useState([]);
+  const [analyticsData, setAnalyticsData] = useState([]);
+  const [trendingBooks, setTrendingBooks] = useState([]);
   const [useUploadedData, setUseUploadedData] = useState(false);
   const [uploadedLoans, setUploadedLoans] = useState([]);
   const [uploadedPenalties, setUploadedPenalties] = useState([]);
@@ -122,6 +124,26 @@ const adminpage = () => {
   const [pendingCheckouts, setPendingCheckouts] = useState([]);
   const [confirmedCheckouts, setConfirmedCheckouts] = useState([]);
 
+  // Load saved state from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedState = localStorage.getItem('adminDashboardState');
+      if (savedState) {
+        const state = JSON.parse(savedState);
+        setOutstandingLoans(state.outstandingLoans || []);
+        setPenalties(state.penalties || []);
+        setUserLoans(state.userLoans || []);
+        setLoansChartData(state.loansChartData || []);
+        setOverdueChartData(state.overdueChartData || []);
+        setMostBorrowedData(state.mostBorrowedData || []);
+        setUserDistData(state.userDistData || []);
+        setPenaltyChartData(state.penaltyChartData || []);
+      }
+    } catch (error) {
+      console.log("No saved state found or error loading state:", error);
+    }
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -135,19 +157,23 @@ const adminpage = () => {
           try {
             const payload = JSON.parse(atob(token.split('.')[1]));
             userInfo = payload;
-            isAdmin = payload.admin || false;
+            isAdmin = payload.is_admin || payload.admin || false;
+            console.log("Admin status:", isAdmin, "User info:", userInfo);
           } catch (e) {
+            console.error("Token decode failed:", e);
             // Token decode failed, continue without user info
           }
         }
 
-        const [items, popularItems, engagingItems, userItems, outstandingItems, penaltyItems] = await Promise.all([
+        const [items, popularItems, engagingItems, userItems, outstandingItems, penaltyItems, analyticsItems, trendingItems] = await Promise.all([
           fetch("http://localhost:8000/recommend/toprated/5").then((r) => r.json()).catch(() => []),
           fetch("http://localhost:8000/recommend/popular/10").then((r) => r.json()).catch(() => []),
           fetch("http://localhost:8000/recommend/topengagement/10").then((r) => r.json()).catch(() => []),
           isAdmin ? fetch("http://localhost:8000/library/userloans?userid=" + encodeURIComponent(userInfo?.sub || ""), { headers }).then((r) => r.ok ? r.json() : []).catch(() => []) : Promise.resolve([]),
           isAdmin ? fetch("http://localhost:8000/library/outstandingloans", { headers }).then((r) => r.ok ? r.json() : []).catch(() => []) : Promise.resolve([]),
           isAdmin ? fetch("http://localhost:8000/library/activepenalties", { headers }).then((r) => r.ok ? r.json() : []).catch(() => []) : Promise.resolve([]),
+          isAdmin ? fetch("http://localhost:8000/analytics?limit=1000", { headers }).then((r) => r.ok ? r.json() : []).catch(() => []) : Promise.resolve([]),
+          isAdmin ? fetch("http://localhost:8000/analytics/trending?n=10", { headers }).then((r) => r.ok ? r.json() : []).catch(() => []) : Promise.resolve([]),
         ]);
         
         const [booksTop, booksPopular, booksEngaging] = await Promise.all([
@@ -181,6 +207,49 @@ const adminpage = () => {
         setUserLoans(userItems || []);
         setOutstandingLoans(outstandingItems || []);
         setPenalties(penaltyItems || []);
+        setAnalyticsData(analyticsItems || []);
+        setTrendingBooks(trendingItems || []);
+
+        // Debug logging
+        console.log("Fetched data:", {
+          outstandingLoans: outstandingItems?.length || 0,
+          penalties: penaltyItems?.length || 0,
+          analytics: analyticsItems?.length || 0,
+          trending: trendingItems?.length || 0,
+          userLoans: userItems?.length || 0
+        });
+
+        // Transform analytics data for most borrowed books chart
+        if (analyticsItems && analyticsItems.length > 0) {
+          // Aggregate request_count by book_id from analytics
+          const bookRequestMap = {};
+          analyticsItems.forEach(record => {
+            const bookId = record.book_id || record.isbn;
+            const requestCount = parseInt(record.request_count || 0);
+            if (bookId) {
+              if (!bookRequestMap[bookId]) {
+                bookRequestMap[bookId] = {
+                  isbn: bookId,
+                  count: 0,
+                  title: record.title || bookId
+                };
+              }
+              bookRequestMap[bookId].count += requestCount;
+            }
+          });
+          
+          // Convert to array and sort by count, take top 10
+          const mostBorrowedFromAnalytics = Object.values(bookRequestMap)
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 10);
+          
+          console.log("Most borrowed from analytics:", mostBorrowedFromAnalytics);
+          
+          // If we have analytics data, use it; otherwise fall back to loan-based data
+          if (mostBorrowedFromAnalytics.length > 0) {
+            setMostBorrowedData(mostBorrowedFromAnalytics);
+          }
+        }
 
         // Populate pending checkouts from outstanding loans with book titles
         if (outstandingItems && outstandingItems.length > 0) {
@@ -210,16 +279,45 @@ const adminpage = () => {
 
         // Only update chart data if API returned actual data
         if (outstandingItems && outstandingItems.length > 0) {
-          setLoansChartData(transformLoansByDate(outstandingItems));
-          setOverdueChartData(transformOverdueTrend(outstandingItems));
-          setMostBorrowedData(transformMostBorrowed(outstandingItems));
+          const loansData = transformLoansByDate(outstandingItems);
+          const overdueData = transformOverdueTrend(outstandingItems);
+          console.log("Loans chart data:", loansData);
+          console.log("Overdue chart data:", overdueData);
+          
+          setLoansChartData(loansData);
+          setOverdueChartData(overdueData);
+          
+          // Only use loan-based most borrowed if analytics didn't provide data
+          if (!analyticsItems || analyticsItems.length === 0) {
+            const mostBorrowedFromLoans = transformMostBorrowed(outstandingItems);
+            console.log("Most borrowed from loans (fallback):", mostBorrowedFromLoans);
+            setMostBorrowedData(mostBorrowedFromLoans);
+          }
         }
         if (userItems && userItems.length > 0) {
-          setUserDistData(transformUserDistribution(userItems));
+          const userDist = transformUserDistribution(userItems);
+          console.log("User distribution data:", userDist);
+          setUserDistData(userDist);
         }
         if (penaltyItems && penaltyItems.length > 0) {
-          setPenaltyChartData(transformPenaltiesByUser(penaltyItems));
+          const penaltyData = transformPenaltiesByUser(penaltyItems);
+          console.log("Penalty chart data:", penaltyData);
+          setPenaltyChartData(penaltyData);
         }
+
+        // Save state to localStorage for persistence
+        const dashboardState = {
+          outstandingLoans: outstandingItems || [],
+          penalties: penaltyItems || [],
+          userLoans: userItems || [],
+          loansChartData: loansChartData,
+          overdueChartData: overdueChartData,
+          mostBorrowedData: mostBorrowedData,
+          userDistData: userDistData,
+          penaltyChartData: penaltyChartData,
+          timestamp: new Date().toISOString()
+        };
+        localStorage.setItem('adminDashboardState', JSON.stringify(dashboardState));
 
         setLoading(false);
       } catch (error) {
@@ -228,43 +326,6 @@ const adminpage = () => {
         setLoading(false);
       }
     };
-
-    // Set demo data as initial state
-    setLoansChartData([
-      { date: "12/25/2024", count: 2, userid: "user3" },
-      { date: "12/28/2024", count: 1, userid: "user2" },
-      { date: "12/30/2024", count: 1, userid: "user3" },
-      { date: "01/15/2025", count: 2, userid: "user1" },
-      { date: "01/20/2025", count: 1, userid: "user2" },
-      { date: "02/05/2025", count: 1, userid: "user4" },
-      { date: "02/10/2025", count: 1, userid: "user1" },
-    ]);
-    setOverdueChartData([
-      { date: "12/25/2024", count: 1, userid: "user3" },
-      { date: "12/28/2024", count: 1, userid: "user2" },
-      { date: "12/30/2024", count: 1, userid: "user3" },
-    ]);
-    setMostBorrowedData([
-      { isbn: "978-0-123456", count: 5, userid: "user1" },
-      { isbn: "978-0-789012", count: 4, userid: "user1" },
-      { isbn: "978-0-345678", count: 3, userid: "user2" },
-      { isbn: "978-0-456789", count: 3, userid: "user3" },
-      { isbn: "978-0-567890", count: 2, userid: "user4" },
-      { isbn: "978-0-654321", count: 2, userid: "user2" },
-      { isbn: "978-0-987654", count: 2, userid: "user1" },
-    ]);
-    setUserDistData([
-      { userid: "user1", count: 3 },
-      { userid: "user2", count: 2 },
-      { userid: "user3", count: 2 },
-      { userid: "user4", count: 1 },
-    ]);
-    setPenaltyChartData([
-      { userid: "user1", penalty: 28.00 },
-      { userid: "user2", penalty: 15.50 },
-      { userid: "user3", penalty: 42.75 },
-      { userid: "user4", penalty: 8.25 },
-    ]);
 
     fetchData();
   }, []);
@@ -398,79 +459,48 @@ const adminpage = () => {
   };
 
   const loansChart = useChart({
-    data: getLoansChartData().length > 0 ? getLoansChartData() : [
-      { date: "12/25/2024", count: 2 },
-      { date: "12/28/2024", count: 1 },
-      { date: "12/30/2024", count: 1 },
-      { date: "01/15/2025", count: 2 },
-      { date: "01/20/2025", count: 1 },
-      { date: "02/05/2025", count: 1 },
-      { date: "02/10/2025", count: 1 },
-    ],
+    data: getLoansChartData().length > 0 ? getLoansChartData() : [],
     series: [{ name: "count", color: "blue.solid" }],
   });
 
   const overdueChart = useChart({
-    data: getFilteredData().overdue.length > 0 ? getFilteredData().overdue : [
-      { date: "12/25/2024", count: 1, userid: "user3" },
-      { date: "12/28/2024", count: 1, userid: "user2" },
-      { date: "12/30/2024", count: 1, userid: "user3" },
-    ],
+    data: getFilteredData().overdue.length > 0 ? getFilteredData().overdue : [],
     series: [{ name: "count", color: "red.solid" }],
   });
 
   const borrowedChart = useChart({
     data: filterUser && mostBorrowedData.length > 0
       ? mostBorrowedData.filter(item => item.userid === filterUser)
-      : (mostBorrowedData.length > 0 ? mostBorrowedData : [
-          { isbn: "978-0-123456", count: 5, userid: "user1" },
-          { isbn: "978-0-789012", count: 4, userid: "user1" },
-          { isbn: "978-0-345678", count: 3, userid: "user2" },
-          { isbn: "978-0-456789", count: 3, userid: "user3" },
-          { isbn: "978-0-567890", count: 2, userid: "user4" },
-        ]),
+      : (mostBorrowedData.length > 0 ? mostBorrowedData : []),
     series: [{ name: "count", color: "green.solid" }],
   });
 
   const userChart = useChart({
     data: filterUser && userDistData.length > 0 
       ? userDistData.filter(item => item.userid === filterUser)
-      : (userDistData.length > 0 ? userDistData : [
-          { userid: "user1", count: 3 },
-          { userid: "user2", count: 2 },
-          { userid: "user3", count: 2 },
-          { userid: "user4", count: 1 },
-        ]),
+      : (userDistData.length > 0 ? userDistData : []),
     series: [{ name: "count", color: "purple.solid" }],
   });
 
   const penaltyChart = useChart({
     data: filterUser && penaltyChartData.length > 0 
       ? penaltyChartData.filter(item => item.userid === filterUser)
-      : (penaltyChartData.length > 0 ? penaltyChartData : [
-          { userid: "user1", penalty: 28.00 },
-          { userid: "user2", penalty: 15.50 },
-          { userid: "user3", penalty: 42.75 },
-          { userid: "user4", penalty: 8.25 },
-        ]),
+      : (penaltyChartData.length > 0 ? penaltyChartData : []),
     series: [{ name: "penalty", color: "orange.solid" }],
   });
 
-  const chart = useChart({
-    data: [
-      { windows: 186, mac: 80, linux: 120, month: "January" },
-      { windows: 165, mac: 95, linux: 110, month: "February" },
-      { windows: 190, mac: 87, linux: 125, month: "March" },
-      { windows: 195, mac: 88, linux: 130, month: "May" },
-      { windows: 182, mac: 98, linux: 122, month: "June" },
-      { windows: 175, mac: 90, linux: 115, month: "August" },
-      { windows: 180, mac: 86, linux: 124, month: "October" },
-      { windows: 185, mac: 91, linux: 126, month: "November" },
-    ],
+  // Transform trending books data for chart
+  const trendingChartData = trendingBooks.map(book => ({
+    isbn: book.book_id || book.isbn,
+    requests: book.total_requests || 0,
+    delta: book.delta_requests || 0,
+  }));
+
+  const trendingChart = useChart({
+    data: trendingChartData.length > 0 ? trendingChartData : [],
     series: [
-      { name: "windows", color: "teal.solid" },
-      { name: "mac", color: "purple.solid" },
-      { name: "linux", color: "blue.solid" },
+      { name: "requests", color: "teal.solid" },
+      { name: "delta", color: "purple.solid" },
     ],
   });
 
@@ -486,10 +516,27 @@ const adminpage = () => {
         </HStack>
       </VStack>
 
+      {error && (
+        <Box p={4} bg="red.50" border="1px solid" borderColor="red.200" borderRadius="md">
+          <Text color="red.600">Error loading data: {error}</Text>
+        </Box>
+      )}
+
+      {loading && (
+        <Box p={4} textAlign="center">
+          <Text>Loading dashboard data...</Text>
+        </Box>
+      )}
+
       <Box w="100%">
         <Text fontWeight="bold" fontSize={20} mb={4}>
-          Loans by Expiry Date
+          Loans by Expiry Date {loansChartData.length > 0 && `(${loansChartData.length} data points)`}
         </Text>
+        {loansChartData.length === 0 && !loading && (
+          <Box p={4} bg="gray.50" border="1px solid" borderColor="gray.200" borderRadius="md" mb={4}>
+            <Text color="gray.600">No loan data available. Charts will populate when there are outstanding loans.</Text>
+          </Box>
+        )}
         <HStack w="100%" mb={4} spacing={2}>
           <Box position="relative" display="inline-block">
             <input
@@ -576,8 +623,13 @@ const adminpage = () => {
       <HStack w="100%" spacing={4}>
         <Box flex={1}>
           <Text fontWeight="bold" fontSize={20} mb={4}>
-            Overdue Loans Trend
+            Overdue Loans Trend {overdueChartData.length > 0 && `(${overdueChartData.length} data points)`}
           </Text>
+          {overdueChartData.length === 0 && !loading && (
+            <Box p={4} bg="gray.50" border="1px solid" borderColor="gray.200" borderRadius="md" mb={4}>
+              <Text color="gray.600" fontSize="sm">No overdue loans data available.</Text>
+            </Box>
+          )}
           <Chart.Root maxH="lg" chart={overdueChart}>
             <LineChart data={overdueChartData}>
               <CartesianGrid stroke={overdueChart.color("border.muted")} vertical={false} strokeDasharray="3 3" />
@@ -594,8 +646,13 @@ const adminpage = () => {
 
         <Box flex={1}>
           <Text fontWeight="bold" fontSize={20} mb={4}>
-            Most Borrowed Books
+            Most Borrowed Books {mostBorrowedData.length > 0 && `(${mostBorrowedData.length} books)`}
           </Text>
+          {mostBorrowedData.length === 0 && !loading && (
+            <Box p={4} bg="gray.50" border="1px solid" borderColor="gray.200" borderRadius="md" mb={4}>
+              <Text color="gray.600" fontSize="sm">No borrowing data available. This chart uses analytics.csv data.</Text>
+            </Box>
+          )}
           <Chart.Root maxH="lg" chart={borrowedChart}>
             <AreaChart data={filterUser && mostBorrowedData.length > 0 ? mostBorrowedData.filter(item => item.userid === filterUser) : mostBorrowedData}>
               <CartesianGrid stroke={borrowedChart.color("border.muted")} vertical={false} strokeDasharray="3 3" />
@@ -625,8 +682,13 @@ const adminpage = () => {
       <HStack w="100%" spacing={4}>
         <Box flex={1}>
           <Text fontWeight="bold" fontSize={20} mb={4}>
-            User Loan Distribution
+            User Loan Distribution {userDistData.length > 0 && `(${userDistData.length} users)`}
           </Text>
+          {userDistData.length === 0 && !loading && (
+            <Box p={4} bg="gray.50" border="1px solid" borderColor="gray.200" borderRadius="md" mb={4}>
+              <Text color="gray.600" fontSize="sm">No user loan distribution data available.</Text>
+            </Box>
+          )}
           <Chart.Root maxH="lg" chart={userChart}>
             <LineChart data={filterUser && userDistData.length > 0 ? userDistData.filter(item => item.userid === filterUser) : userDistData}>
               <CartesianGrid stroke={userChart.color("border.muted")} vertical={false} strokeDasharray="3 3" />
@@ -643,8 +705,13 @@ const adminpage = () => {
 
         <Box flex={1}>
           <Text fontWeight="bold" fontSize={20} mb={4}>
-            Active Penalties by User
+            Active Penalties by User {penaltyChartData.length > 0 && `(${penaltyChartData.length} penalties)`}
           </Text>
+          {penaltyChartData.length === 0 && !loading && (
+            <Box p={4} bg="gray.50" border="1px solid" borderColor="gray.200" borderRadius="md" mb={4}>
+              <Text color="gray.600" fontSize="sm">No active penalties data available.</Text>
+            </Box>
+          )}
           <Chart.Root maxH="lg" chart={penaltyChart}>
             <BarChart data={filterUser && penaltyChartData.length > 0 ? penaltyChartData.filter(item => item.userid === filterUser) : penaltyChartData}>
               <CartesianGrid stroke={penaltyChart.color("border.muted")} vertical={false} />
